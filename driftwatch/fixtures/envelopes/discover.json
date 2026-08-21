@@ -1,0 +1,7 @@
+{
+  "candidates": [
+    {"url": "http://localhost:8000/mirror/nimbusai-pricing", "title": "NimbusAI Platform Pricing (relocated)", "score": 0.93, "reason": "Official domain, canonical pricing table with per-model rates"},
+    {"url": "http://localhost:8000/mirror/nimbusai-pricing?legacy=1", "title": "NimbusAI Pricing (archived mirror)", "score": 0.61, "reason": "Stale copy — prices last updated 2 months ago"},
+    {"url": "http://localhost:8000/mirror/payflux-docs", "title": "Platform pricing overview (blog)", "score": 0.34, "reason": "Secondary source; not canonical"}
+  ]
+}

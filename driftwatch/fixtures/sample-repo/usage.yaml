@@ -1,0 +1,11 @@
+# Declared usage profile for cost-delta estimation (acme-support-bot).
+# Volumes are monthly, in millions of tokens.
+models:
+  nimbus-large-2:
+    input_m_tokens_per_month: 320
+    output_m_tokens_per_month: 248
+    price_input_per_1m: 2.50
+  nimbus-mini-3:
+    input_m_tokens_per_month: 95
+    output_m_tokens_per_month: 40
+    price_input_per_1m: 0.15

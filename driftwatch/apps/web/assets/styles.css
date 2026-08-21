@@ -1,0 +1,213 @@
+/* Driftwatch UI — dark observatory theme.
+   Palette: validated per the dataviz method (all-pairs, dark surface #1a1a19).
+   Class marks always pair color with a glyph + label — never color alone. */
+
+:root {
+  color-scheme: dark;
+  --page: #0d0d0d;
+  --surface: #1a1a19;
+  --surface-2: #212120;
+  --ink: #ffffff;
+  --ink-2: #c3c2b7;
+  --muted: #898781;
+  --grid: #2c2c2a;
+  --baseline: #383835;
+  --ring: rgba(255, 255, 255, 0.10);
+  --accent: #3987e5;          /* links, focus, confidence */
+  --good: #0ca30c;            /* verified — always with icon + label */
+  --c1: #c98500;              /* Class 1 structural  (triangle) */
+  --c2: #898781;              /* Class 2 benign      (small circle) */
+  --c3: #d03b3b;              /* Class 3 material    (square) */
+  --c4: #9085e9;              /* Class 4 semantic    (diamond) */
+  --c5: #199e70;              /* Class 5 availability (ring) */
+  --mono: ui-monospace, "SF Mono", "Cascadia Mono", Menlo, Consolas, monospace;
+}
+
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; }
+body {
+  background: var(--page);
+  color: var(--ink);
+  font: 14px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+button { font: inherit; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* ---- shell ------------------------------------------------------------- */
+.shell { display: grid; grid-template-columns: 208px 1fr; min-height: 100vh; }
+.rail {
+  position: sticky; top: 0; height: 100vh; padding: 20px 14px;
+  border-right: 1px solid var(--ring); display: flex; flex-direction: column; gap: 4px;
+}
+.rail a {
+  display: flex; align-items: center; gap: 10px; padding: 9px 12px; border-radius: 8px;
+  color: var(--ink-2); font-weight: 500;
+}
+.rail a:hover { background: var(--surface); text-decoration: none; color: var(--ink); }
+.rail a.active { background: var(--surface-2); color: var(--ink); }
+.nav-ico { width: 18px; text-align: center; color: var(--muted); font-size: 12px; }
+.rail a.active .nav-ico { color: var(--accent); }
+.wordmark {
+  display: flex; align-items: center; gap: 9px; font-weight: 700; letter-spacing: 0.12em;
+  font-size: 13px; color: var(--ink); margin: 2px 12px 18px;
+}
+.wordmark-dot {
+  width: 9px; height: 9px; border-radius: 50%; background: var(--accent);
+  box-shadow: 0 0 0 0 rgba(57, 135, 229, 0.6); animation: breathe 3.2s ease-in-out infinite;
+}
+.rail-foot { margin-top: auto; display: grid; gap: 10px; }
+.rail-note { color: var(--muted); font-size: 11px; line-height: 1.45; }
+#mode-chip { color: var(--ink-2); font-family: var(--mono); }
+.view { padding: 26px 32px 80px; max-width: 1180px; }
+
+/* ---- typography & cards ------------------------------------------------ */
+h1 { font-size: 21px; margin: 0 0 4px; letter-spacing: -0.01em; }
+h2 { font-size: 15px; margin: 26px 0 10px; color: var(--ink); }
+.sub { color: var(--muted); margin: 0 0 20px; }
+.card {
+  background: var(--surface); border: 1px solid var(--ring); border-radius: 12px;
+  padding: 16px 18px;
+}
+.grid { display: grid; gap: 14px; }
+.grid > * { min-width: 0; }
+.web-wrap > * { min-width: 0; }
+.cols-2 { grid-template-columns: 1fr 1fr; }
+.cols-3 { grid-template-columns: repeat(3, 1fr); }
+.cols-4 { grid-template-columns: repeat(4, 1fr); }
+@media (max-width: 980px) { .cols-2, .cols-3, .cols-4 { grid-template-columns: 1fr; } }
+
+/* stat tiles — hero numbers in text ink, label in muted (dataviz stat-tile spec) */
+.tile .tile-value { font-size: 26px; font-weight: 650; letter-spacing: -0.02em; }
+.tile .tile-label { color: var(--muted); font-size: 12px; margin-top: 2px; }
+.tile .tile-note { color: var(--ink-2); font-size: 12px; margin-top: 6px; }
+
+/* ---- class badges (color + glyph + label, never color alone) ----------- */
+.badge {
+  display: inline-flex; align-items: center; gap: 7px; padding: 3px 10px 3px 8px;
+  border-radius: 999px; font-size: 12px; font-weight: 600; border: 1px solid var(--ring);
+  background: var(--surface-2); color: var(--ink-2); white-space: nowrap;
+}
+.badge .glyph { flex: none; }
+.badge-good { color: var(--good); }
+.sev { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; }
+
+/* ---- tables ------------------------------------------------------------ */
+table { width: 100%; border-collapse: collapse; font-size: 13px; }
+th { text-align: left; color: var(--muted); font-weight: 500; padding: 7px 10px; border-bottom: 1px solid var(--grid); }
+td { padding: 7px 10px; border-bottom: 1px solid var(--grid); vertical-align: top; }
+tr:last-child td { border-bottom: none; }
+.num { font-variant-numeric: tabular-nums; }
+code, .mono { font-family: var(--mono); font-size: 12px; }
+.diff-before { color: var(--muted); text-decoration: line-through; }
+.diff-after { color: var(--ink); font-weight: 600; }
+.prompt-block {
+  font-family: var(--mono); font-size: 12px; white-space: pre-wrap; background: var(--page);
+  border: 1px solid var(--grid); border-radius: 8px; padding: 12px; color: var(--ink-2);
+}
+
+/* ---- buttons ----------------------------------------------------------- */
+.btn {
+  background: var(--accent); color: #fff; border: none; border-radius: 8px;
+  padding: 8px 14px; font-weight: 600; cursor: pointer;
+}
+.btn:hover { filter: brightness(1.1); }
+.btn-danger { background: var(--c3); }
+.ghost-btn {
+  background: transparent; color: var(--ink-2); border: 1px solid var(--ring);
+  border-radius: 8px; padding: 7px 12px; cursor: pointer;
+}
+.ghost-btn:hover { background: var(--surface); color: var(--ink); }
+.chip-row { display: flex; gap: 8px; flex-wrap: wrap; margin: 0 0 14px; }
+.chip {
+  border: 1px solid var(--ring); background: var(--surface); color: var(--ink-2);
+  border-radius: 999px; padding: 5px 12px; cursor: pointer; font-size: 12px;
+}
+.chip.active { background: var(--surface-2); color: var(--ink); border-color: var(--accent); }
+
+/* ---- living web -------------------------------------------------------- */
+.web-wrap { display: grid; grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr); gap: 14px; }
+@media (max-width: 980px) { .web-wrap { grid-template-columns: 1fr; } }
+.web-svg { width: 100%; height: auto; display: block; }
+.strand { stroke: var(--baseline); stroke-width: 1.5; }
+.strand.tremor { animation: tremor 0.9s ease-in-out; }
+.node-core { fill: var(--surface-2); stroke: var(--ring); }
+.node-label { fill: var(--ink-2); font-size: 12px; font-weight: 600; }
+.node-sub { fill: var(--muted); font-size: 10.5px; }
+.ripple { fill: none; opacity: 0; }
+.ripple.go { animation: ripple 1.6s ease-out; }
+.feed { display: grid; gap: 10px; max-height: 460px; overflow: auto; }
+.feed-item { display: grid; gap: 4px; padding: 10px 12px; border: 1px solid var(--grid); border-radius: 10px; }
+.feed-item time { color: var(--muted); font-size: 11px; }
+
+/* ---- seismograph ------------------------------------------------------- */
+.seismo { width: 100%; height: auto; display: block; }
+.seismo .axis { stroke: var(--baseline); stroke-width: 1; }
+.seismo .gridline { stroke: var(--grid); stroke-width: 1; }
+.seismo .tick-label { fill: var(--muted); font-size: 10px; }
+.seismo .base { stroke: var(--ink-2); stroke-width: 1.5; }
+.legend { display: flex; gap: 14px; flex-wrap: wrap; margin-top: 10px; color: var(--ink-2); font-size: 12px; }
+.legend span { display: inline-flex; align-items: center; gap: 6px; }
+
+/* ---- heal gates -------------------------------------------------------- */
+.gates { display: grid; gap: 0; }
+.gate { display: grid; grid-template-columns: 26px 1fr auto; align-items: start; gap: 12px; padding: 10px 4px; }
+.gate + .gate { border-top: 1px dashed var(--grid); }
+.gate-dot {
+  width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center;
+  border: 1.5px solid var(--baseline); color: var(--muted); font-size: 12px; margin-top: 1px;
+}
+.gate.pass .gate-dot { border-color: var(--good); color: var(--good); }
+.gate.fail .gate-dot { border-color: var(--c3); color: var(--c3); }
+.gate.run .gate-dot { border-color: var(--accent); color: var(--accent); animation: breathe 1.4s infinite; }
+.gate-name { font-weight: 600; }
+.gate-detail { color: var(--muted); font-size: 12px; }
+
+/* ---- drawer / toasts / tooltip ----------------------------------------- */
+.demo-drawer {
+  position: fixed; right: 18px; bottom: 18px; width: 330px; z-index: 40;
+  background: var(--surface); border: 1px solid var(--ring); border-radius: 14px;
+  padding: 16px; box-shadow: 0 18px 50px rgba(0, 0, 0, 0.5);
+}
+.demo-drawer h3 { margin: 0 0 4px; font-size: 13px; }
+.demo-drawer .sub { margin-bottom: 12px; font-size: 12px; }
+.demo-row { display: grid; gap: 6px; margin-bottom: 12px; }
+.demo-row label { color: var(--ink-2); font-size: 12px; font-weight: 600; }
+.demo-row select {
+  background: var(--page); color: var(--ink); border: 1px solid var(--grid);
+  border-radius: 8px; padding: 7px 9px;
+}
+.toasts { position: fixed; right: 18px; top: 18px; display: grid; gap: 10px; z-index: 50; width: 360px; }
+.toast {
+  background: var(--surface-2); border: 1px solid var(--ring); border-left: 3px solid var(--accent);
+  border-radius: 10px; padding: 12px 14px; font-size: 13px; color: var(--ink);
+  animation: slide-in 0.25s ease-out; box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45);
+}
+.toast .t-head { font-weight: 700; display: flex; gap: 8px; align-items: center; margin-bottom: 3px; }
+.toast time { color: var(--muted); font-size: 11px; }
+.tooltip {
+  position: fixed; z-index: 60; background: var(--surface-2); border: 1px solid var(--ring);
+  border-radius: 8px; padding: 8px 10px; font-size: 12px; color: var(--ink);
+  pointer-events: none; max-width: 320px; box-shadow: 0 10px 28px rgba(0, 0, 0, 0.5);
+}
+.tooltip .tt-sub { color: var(--muted); }
+
+/* ---- confidence dial --------------------------------------------------- */
+.dial-track { stroke: var(--grid); }
+.dial-arc { stroke: var(--accent); transition: stroke-dashoffset 0.8s ease; }
+.dial-num { fill: var(--ink); font-size: 15px; font-weight: 700; }
+.dial-cap { fill: var(--muted); font-size: 9px; }
+
+/* ---- animations (disabled under reduced motion) ------------------------ */
+@keyframes breathe { 50% { box-shadow: 0 0 0 7px rgba(57, 135, 229, 0); } }
+@keyframes ripple { 0% { opacity: 0.9; } 100% { opacity: 0; } }
+@keyframes tremor {
+  20% { transform: translateX(1.6px); } 40% { transform: translateX(-1.4px); }
+  60% { transform: translateX(1px); } 80% { transform: translateX(-0.6px); }
+}
+@keyframes slide-in { from { transform: translateX(24px); opacity: 0; } }
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+}

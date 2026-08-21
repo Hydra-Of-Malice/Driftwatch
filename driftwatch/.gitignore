@@ -1,0 +1,12 @@
+__pycache__/
+*.pyc
+.venv/
+driftwatch.db
+driftwatch.db-*
+*.db-journal
+*.db-wal
+*.db-shm
+.env
+node_modules/
+.DS_Store
+nohup.out

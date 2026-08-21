@@ -1,0 +1,5 @@
+flask>=3
+pydantic>=2
+jsonschema>=4
+pyyaml>=6
+httpx>=0.27

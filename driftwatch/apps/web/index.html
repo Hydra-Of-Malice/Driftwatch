@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Driftwatch — the missing changelog for the web you depend on</title>
+  <link rel="stylesheet" href="/assets/styles.css" />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='34' fill='none' stroke='%233987e5' stroke-width='8'/><circle cx='50' cy='50' r='10' fill='%23d03b3b'/></svg>" />
+</head>
+<body>
+  <div class="shell">
+    <nav class="rail" aria-label="Primary">
+      <a class="wordmark" href="#/web">
+        <span class="wordmark-dot" aria-hidden="true"></span>DRIFTWATCH
+      </a>
+      <a href="#/web" data-nav="web"><span class="nav-ico" aria-hidden="true">◉</span>Web</a>
+      <a href="#/sources" data-nav="sources"><span class="nav-ico" aria-hidden="true">☰</span>Sources</a>
+      <a href="#/events" data-nav="events"><span class="nav-ico" aria-hidden="true">△</span>Events</a>
+      <a href="#/heal" data-nav="heal"><span class="nav-ico" aria-hidden="true">✚</span>Heal Center</a>
+      <a href="#/ledger" data-nav="ledger"><span class="nav-ico" aria-hidden="true">≡</span>Ledger</a>
+      <div class="rail-foot">
+        <button id="demo-toggle" class="ghost-btn" type="button">Demo controls</button>
+        <div class="rail-note">Scraper Studio<br/>orchestration: <span id="mode-chip">replay</span></div>
+      </div>
+    </nav>
+    <main id="view" class="view" tabindex="-1"></main>
+  </div>
+
+  <aside id="demo-drawer" class="demo-drawer" hidden aria-label="Demo controls"></aside>
+  <div id="toasts" class="toasts" aria-live="polite"></div>
+  <div id="tooltip" class="tooltip" hidden></div>
+
+  <script type="module" src="/assets/app.js"></script>
+</body>
+</html>

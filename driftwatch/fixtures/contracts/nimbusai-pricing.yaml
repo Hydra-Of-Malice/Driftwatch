@@ -1,0 +1,56 @@
+# Semantic data contract: NimbusAI platform pricing page.
+# Shape (schema) + quality (invariants) + meaning (assertions) + plausibility (continuity).
+source_id: nimbusai-pricing
+version: 1
+entity_key: model_id
+
+schema:
+  type: object
+  required: [page_title, models]
+  properties:
+    page_title: { type: string }
+    effective_note: { type: [string, "null"] }
+    models:
+      type: array
+      minItems: 1
+      items:
+        type: object
+        required: [model_id, price_input_per_1m, price_output_per_1m, unit_context, rate_limit_rpm, status]
+        properties:
+          model_id: { type: string }
+          display_name: { type: [string, "null"] }
+          price_input_per_1m: { type: number }
+          price_output_per_1m: { type: number }
+          unit_context: { type: string }
+          rate_limit_rpm: { type: number }
+          rate_limit_context: { type: [string, "null"] }
+          context_window: { type: [number, "null"] }
+          status: { type: string }
+
+invariants:
+  - { field: "models[].price_input_per_1m", kind: range, min: 0.01, max: 500 }
+  - { field: "models[].price_output_per_1m", kind: range, min: 0.01, max: 1000 }
+  - { field: "models[].rate_limit_rpm", kind: range, min: 1, max: 1000000 }
+  - { field: "models[].status", kind: enum, values: [active, preview, deprecated] }
+  - { field: "models", kind: cardinality_drop, max_drop_pct: 50 }
+
+# Meaning, made checkable: the unit text captured next to each price must still
+# say "per 1M input tokens". If the page silently redefines the unit, the value
+# extracts fine and THIS is what catches it (Class 4 — semantic drift).
+assertions:
+  - field: "models[].price_input_per_1m"
+    meaning: "USD per 1 million INPUT tokens, public monthly price"
+    unit_context_field: "models[].unit_context"
+    anchors: ["per 1M input tokens", "per 1 million input tokens"]
+
+continuity:
+  - { field: "models[].price_input_per_1m", max_change_pct: 200 }
+  - { field: "models[].price_output_per_1m", max_change_pct: 200 }
+  - { field: "models", max_cardinality_drop_pct: 50 }
+
+significant_fields:
+  - "models[].price_input_per_1m"
+  - "models[].price_output_per_1m"
+  - "models[].rate_limit_rpm"
+  - "models[].context_window"
+  - "models[].status"

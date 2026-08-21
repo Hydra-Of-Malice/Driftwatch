@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><title>PayFlux — API Reference</title>
+<style>
+  body{font:14px/1.65 system-ui,sans-serif;margin:0;background:#fff;color:#1a1f36;display:grid;
+       grid-template-columns:230px 1fr;min-height:100vh}
+  nav{background:#f6f8fa;border-right:1px solid #e6e9ef;padding:26px 20px}
+  nav b{color:#4f39c9;letter-spacing:.1em;font-size:13px}
+  nav a{display:block;color:#4a5170;padding:5px 0;text-decoration:none;font-size:13px}
+  main{padding:34px 48px;max-width:860px}
+  h1{font-size:24px;margin:0 0 4px}
+  .ver{color:#7a819c;font-size:13px;font-family:ui-monospace,monospace}
+  .ep{border:1px solid #e6e9ef;border-radius:10px;margin:22px 0;overflow:hidden}
+  .ep-head{display:flex;gap:10px;align-items:center;padding:12px 16px;background:#f9fafc}
+  .method{background:#4f39c9;color:#fff;border-radius:6px;padding:2px 9px;font-size:12px;font-weight:700}
+  .path{font-family:ui-monospace,monospace;font-weight:600}
+  .ep-body{padding:12px 16px;font-size:13px}
+  .req{color:#b3261e;font-weight:600}
+  .meta{color:#7a819c}
+  .dep{background:#fdecec;color:#a02020;border-radius:6px;padding:2px 9px;font-size:12px;font-weight:700}
+</style></head><body>
+<nav><b>PAYFLUX</b><p></p><a href="#">Charges</a><a href="#">Refunds</a><a href="#">Customers</a><a href="#">Tokens (legacy)</a></nav>
+<main>
+  <h1>API Reference</h1><div class="ver">version 2026-08-20 · auth: secret key</div>
+  <div class="ep"><div class="ep-head"><span class="method">POST</span><span class="path">/v2/charges</span></div>
+    <div class="ep-body">Required: <span class="req">amount, currency, source, customer_id</span> ·
+      Optional: <span class="meta">description, metadata</span><br>
+      <span class="meta">Rate limit: 100 requests per minute · secret key</span></div></div>
+  <div class="ep"><div class="ep-head"><span class="method">POST</span><span class="path">/v2/refunds</span></div>
+    <div class="ep-body">Required: <span class="req">charge_id</span> ·
+      Optional: <span class="meta">amount, reason</span><br>
+      <span class="meta">Rate limit: 50 requests per minute · secret key</span></div></div>
+  <div class="ep"><div class="ep-head"><span class="method">POST</span><span class="path">/v2/customers</span></div>
+    <div class="ep-body">Required: <span class="req">email</span> ·
+      Optional: <span class="meta">name, metadata</span><br>
+      <span class="meta">Rate limit: 100 requests per minute · secret key</span></div></div>
+  <div class="ep"><div class="ep-head"><span class="method">POST</span><span class="path">/v1/tokens</span><span class="dep">DEPRECATED</span></div>
+    <div class="ep-body">Required: <span class="req">card</span><br>
+      <span class="meta">Rate limit: 100 requests per minute · publishable key</span></div></div>
+</main></body></html>

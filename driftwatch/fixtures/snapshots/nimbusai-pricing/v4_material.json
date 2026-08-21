@@ -1,0 +1,39 @@
+{
+  "page_title": "NimbusAI \u2014 Platform Pricing",
+  "effective_note": "Prices effective September 1, 2026",
+  "models": [
+    {
+      "model_id": "nimbus-large-2",
+      "display_name": "Nimbus Large 2",
+      "price_input_per_1m": 3.4,
+      "price_output_per_1m": 10.5,
+      "unit_context": "USD per 1M input tokens",
+      "rate_limit_rpm": 500,
+      "rate_limit_context": "500 requests per minute",
+      "context_window": 200000,
+      "status": "active"
+    },
+    {
+      "model_id": "nimbus-mini-3",
+      "display_name": "Nimbus Mini 3",
+      "price_input_per_1m": 0.15,
+      "price_output_per_1m": 0.6,
+      "unit_context": "USD per 1M input tokens",
+      "rate_limit_rpm": 2000,
+      "rate_limit_context": "2,000 requests per minute",
+      "context_window": 128000,
+      "status": "active"
+    },
+    {
+      "model_id": "nimbus-vision-1",
+      "display_name": "Nimbus Vision 1",
+      "price_input_per_1m": 4.0,
+      "price_output_per_1m": 16.0,
+      "unit_context": "USD per 1M input tokens",
+      "rate_limit_rpm": 200,
+      "rate_limit_context": "200 requests per minute",
+      "context_window": 100000,
+      "status": "deprecated"
+    }
+  ]
+}

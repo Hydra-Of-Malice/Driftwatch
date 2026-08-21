@@ -1,0 +1,28 @@
+{
+  "page_title": "NimbusAI \u2014 Platform Pricing",
+  "effective_note": null,
+  "models": [
+    {
+      "model_id": "nimbus-large-2",
+      "display_name": null,
+      "price_input_per_1m": null,
+      "price_output_per_1m": null,
+      "unit_context": null,
+      "rate_limit_rpm": null,
+      "rate_limit_context": null,
+      "context_window": null,
+      "status": null
+    },
+    {
+      "model_id": "nimbus-mini-3",
+      "display_name": null,
+      "price_input_per_1m": null,
+      "price_output_per_1m": null,
+      "unit_context": null,
+      "rate_limit_rpm": null,
+      "rate_limit_context": null,
+      "context_window": null,
+      "status": null
+    }
+  ]
+}

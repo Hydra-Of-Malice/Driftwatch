@@ -1,0 +1,42 @@
+{
+  "page_title": "PayFlux API Reference",
+  "api_version": "2026-07-15",
+  "endpoints": [
+    {
+      "path": "/v2/charges",
+      "method": "POST",
+      "required_params": ["amount", "currency", "source"],
+      "optional_params": ["description", "metadata"],
+      "deprecated": false,
+      "rate_limit": "100 requests per minute",
+      "auth": "secret key"
+    },
+    {
+      "path": "/v2/refunds",
+      "method": "POST",
+      "required_params": ["charge_id"],
+      "optional_params": ["amount", "reason"],
+      "deprecated": false,
+      "rate_limit": "50 requests per minute",
+      "auth": "secret key"
+    },
+    {
+      "path": "/v2/customers",
+      "method": "POST",
+      "required_params": ["email"],
+      "optional_params": ["name", "metadata"],
+      "deprecated": false,
+      "rate_limit": "100 requests per minute",
+      "auth": "secret key"
+    },
+    {
+      "path": "/v1/tokens",
+      "method": "POST",
+      "required_params": ["card"],
+      "optional_params": [],
+      "deprecated": false,
+      "rate_limit": "100 requests per minute",
+      "auth": "publishable key"
+    }
+  ]
+}
