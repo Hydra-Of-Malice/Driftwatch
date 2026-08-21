@@ -149,6 +149,19 @@ def _connect() -> sqlite3.Connection:
     return conn
 
 
+def close() -> None:
+    """Release this thread's connection.
+
+    SQLite in WAL mode keeps -wal/-shm handles open; Windows refuses to unlink a
+    file that still has an open handle, so tests and graceful shutdown need this.
+    """
+    conn: sqlite3.Connection | None = getattr(_local, "conn", None)
+    if conn is not None:
+        conn.close()
+        _local.conn = None
+        _local.path = None
+
+
 def j(value: Any) -> str:
     return json.dumps(value, default=str, ensure_ascii=False)
 

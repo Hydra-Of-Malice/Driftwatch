@@ -35,4 +35,5 @@ class EngineTestCase(unittest.TestCase):
         self.deps = Deps(client=self.client, provider=HeuristicProvider(), settings=self.settings)
 
     def tearDown(self) -> None:
+        db.close()
         self._tmp.cleanup()

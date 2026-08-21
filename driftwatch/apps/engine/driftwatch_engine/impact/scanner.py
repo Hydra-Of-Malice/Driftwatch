@@ -43,7 +43,7 @@ def scan_repo(repo_dir: Path, entities: list[str]) -> list[CallSite]:
     for path in sorted(repo_dir.rglob("*")):
         if not path.is_file() or path.suffix not in SCANNABLE:
             continue
-        rel = str(path.relative_to(repo_dir))
+        rel = path.relative_to(repo_dir).as_posix()  # stable across platforms
         for lineno, line in enumerate(path.read_text(errors="ignore").splitlines(), start=1):
             for entity in entities:
                 if entity in line:
