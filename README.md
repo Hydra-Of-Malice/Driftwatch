@@ -115,6 +115,7 @@ Full state machine and design decisions: [ARCHITECTURE.md](ARCHITECTURE.md).
 
 ## Hackathon submission notes
 
+- **AI coding assistant usage:** [docs/AI_USAGE.md](docs/AI_USAGE.md)
 - **Scraper Studio usage:** [docs/SCRAPER_STUDIO.md](docs/SCRAPER_STUDIO.md)
 - **2-minute demo script:** [docs/DEMO.md](docs/DEMO.md)
 - **Example structured output:** [fixtures/snapshots/](fixtures/snapshots/) (contract-stamped

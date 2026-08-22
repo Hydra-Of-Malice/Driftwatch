@@ -3,6 +3,7 @@
 Complete technical documentation for DriftWatch. Every claim here is traceable to source code, configuration, or a test; see [Evidence & Status Conventions](#evidence--status-conventions) for how claims are labelled.
 
 **Start here:** [Executive Summary](EXECUTIVE_SUMMARY.md) — the whole system in 3 minutes.
+**Hackathon submission:** [AI Usage Disclosure](AI_USAGE.md) · [Scraper Studio usage](SCRAPER_STUDIO.md) · [Demo script](DEMO.md)
 
 ---
 
