@@ -14,13 +14,17 @@ from flask import Flask, jsonify, request, send_from_directory
 from .. import db
 from ..brightdata.live import LiveClient
 from ..brightdata.replay import ReplayClient, WorldState
-from ..config import MIRROR_DIR, WEB_DIR, Settings
+from ..config import FIXTURES_DIR, MIRROR_DIR, WEB_DIR, Settings
 from ..domain import CLASS_LABELS
 from ..healing.orchestrator import decide_review
 from ..llm.provider import make_provider
 from ..pipeline.runner import Deps, run_source
 
 VARIANTS = ["v1_baseline", "v2_redesign", "v3_semantic", "v4_material", "v5_gone"]
+
+# Reachable with no token even when DW_API_TOKEN is set: the SPA shell, its static
+# assets, and the demo mirror site (public web content by design, not API state).
+PUBLIC_PATH_PREFIXES = ("/assets/", "/mirror/")
 
 
 def build_deps(settings: Settings, world: WorldState) -> Deps:
@@ -33,6 +37,22 @@ def create_app(settings: Settings, world: WorldState | None = None) -> Flask:
     deps = build_deps(settings, world)
     app = Flask("driftwatch", static_folder=None)
     app.json.sort_keys = False  # keep payload field order as extracted (snapshot tables mirror the page)
+
+    # -- auth ---------------------------------------------------------------------
+    # Opt-in: unset DW_API_TOKEN preserves today's open-localhost-demo behaviour
+    # exactly (see docs/06_Security/Security_Architecture.md). Set it to require
+    # `Authorization: Bearer <token>` on every route except the SPA/assets/mirror.
+
+    @app.before_request
+    def _require_auth():
+        if not settings.api_token:
+            return None
+        if request.path == "/" or request.path.startswith(PUBLIC_PATH_PREFIXES):
+            return None
+        expected = f"Bearer {settings.api_token}"
+        if request.headers.get("Authorization") != expected:
+            return jsonify({"error": "unauthorized"}), 401
+        return None
 
     # -- SPA + assets -----------------------------------------------------------
 
@@ -177,7 +197,10 @@ def create_app(settings: Settings, world: WorldState | None = None) -> Flask:
     @app.get("/api/stats")
     def stats():
         events = db.query("SELECT drift_class, COUNT(*) AS n FROM drift_events GROUP BY drift_class")
-        heal_rows = db.query("SELECT mttr_seconds FROM heal_events WHERE mttr_seconds IS NOT NULL")
+        # heal_mttr_seconds is a headline stat — seed.py's demo-history rows (seeded=1) are
+        # excluded so it never mixes a fabricated constant with a real measurement (GAP-18).
+        heal_rows = db.query(
+            "SELECT mttr_seconds FROM heal_events WHERE mttr_seconds IS NOT NULL AND seeded = 0")
         heal_all = db.query("SELECT status, COUNT(*) AS n FROM heal_events GROUP BY status")
         runs = db.query_one("SELECT COUNT(*) AS n, COALESCE(SUM(credits_spent),0) AS credits FROM runs")
         verified = db.query_one(
@@ -189,6 +212,7 @@ def create_app(settings: Settings, world: WorldState | None = None) -> Flask:
             "runs": runs["n"], "credits_spent": runs["credits"],
             "events_by_class": {CLASS_LABELS[e["drift_class"]]: e["n"] for e in events},
             "heal_mttr_seconds": round(statistics.mean(mttrs), 1) if mttrs else None,
+            "heal_mttr_measured_count": len(mttrs),
             "heal_verification_pass_rate": round(verified["n"] / total_heals, 3),
             "quarantined_snapshots": (db.query_one(
                 "SELECT COUNT(*) AS n FROM snapshots WHERE quarantined = 1") or {}).get("n", 0),
@@ -210,6 +234,18 @@ def create_app(settings: Settings, world: WorldState | None = None) -> Flask:
         source_id = body.get("id") or (name or "source").lower().replace(" ", "-")
         if not (url and description and name):
             return jsonify({"error": "url, description and name are required"}), 400
+        contract_path = (deps.contracts_dir or FIXTURES_DIR / "contracts") / f"{source_id}.yaml"
+        if not contract_path.exists():
+            return jsonify({
+                "error": "no contract available for this source",
+                "detail": (
+                    f"onboarding requires a hand-authored semantic contract at {contract_path} "
+                    "before the first run can pass; none exists for this source_id yet. Write one "
+                    "(copy fixtures/contracts/nimbusai-pricing.yaml as a starting point) and retry — "
+                    "see docs/09_AI_ML/Model_Limitations.md#8"
+                ),
+                "source_id": source_id,
+            }), 422
         envelope = deps.client.create_scraper(url, description, name=source_id)
         db.insert("sources", {
             "id": source_id, "name": name, "vertical": body.get("vertical", "custom"),
@@ -256,4 +292,6 @@ def serve(settings: Settings) -> None:
         world.set_variant(source_id, variant)
     app = create_app(settings, world)
     start_scheduler(build_deps(settings, world))
-    app.run(host="0.0.0.0", port=settings.port, debug=False)  # noqa: S104 - demo server
+    # Binds 127.0.0.1 unless DW_HOST is set explicitly (e.g. DW_HOST=0.0.0.0 to expose
+    # beyond localhost) — see docs/08_Deployment/Deployment_Architecture.md § Networking.
+    app.run(host=settings.host, port=settings.port, debug=False)

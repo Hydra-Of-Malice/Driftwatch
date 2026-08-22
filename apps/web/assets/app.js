@@ -107,7 +107,7 @@ async function renderWeb() {
       ${tile(stats.sources, "sources watched")}
       ${tile(Object.entries(stats.events_by_class).reduce((n, [, v]) => n + v, 0), "drift events (12d)")}
       ${tile(stats.heal_mttr_seconds ? `${stats.heal_mttr_seconds}s` : "—", "heal MTTR",
-             "detect → verified repair")}
+             stats.heal_mttr_seconds ? "detect → verified repair" : "no measured heal yet")}
       ${tile(`${Math.round((stats.heal_verification_pass_rate ?? 0) * 100)}%`, "repairs verified",
              `${stats.credits_spent} Bright Data credits spent`)}
     </div>`));
@@ -390,7 +390,8 @@ async function renderHeal() {
   wrap.append(fromHtml(html`<h1>Heal Center</h1>
     <p class="sub">A healed scraper's output is never trusted — it is re-proven against the contract.</p>
     <div class="grid cols-4">
-      ${tile(stats.heal_mttr_seconds ? `${stats.heal_mttr_seconds}s` : "—", "mean time to verified repair")}
+      ${tile(stats.heal_mttr_seconds ? `${stats.heal_mttr_seconds}s` : "—", "mean time to verified repair",
+             stats.heal_mttr_seconds ? "" : "no measured heal yet — seeded demo history is excluded")}
       ${tile(`${Math.round((stats.heal_verification_pass_rate ?? 0) * 100)}%`, "repairs verified & approved")}
       ${tile(stats.quarantined_snapshots, "snapshots quarantined", "never served downstream")}
       ${tile(stats.credits_spent, "Bright Data credits spent", "1 credit per page load")}
@@ -474,7 +475,7 @@ async function renderHeal() {
       <td>${esc(heal.decided_by ?? "—")}</td>
       <td class="num">${heal.version_after ? `v${esc(heal.version_before)}→v${esc(heal.version_after)}` :
         `v${esc(heal.version_before)} kept`}</td>
-      <td class="num">${heal.mttr_seconds ? `${esc(heal.mttr_seconds)}s` : "—"}</td></tr>`).join("")}
+      <td class="num">${heal.mttr_seconds ? `${esc(heal.mttr_seconds)}s${heal.seeded ? " (seeded)" : ""}` : "—"}</td></tr>`).join("")}
     </tbody></table></div>`);
   wrap.append(table);
   mount(view, wrap);

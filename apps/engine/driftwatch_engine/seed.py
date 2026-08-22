@@ -142,7 +142,7 @@ def _seed_structural_heal(when: datetime) -> None:
         "verification": db.j(evaluate(baseline, spec, baseline).model_dump()),
         "decision": "auto_approved", "decided_by": "machine",
         "version_before": 1, "version_after": 2, "status": "approved",
-        "mttr_seconds": 42.3, "created_at": _iso(when + timedelta(seconds=5)),
+        "mttr_seconds": 42.3, "seeded": 1, "created_at": _iso(when + timedelta(seconds=5)),
     })
     db.update("scrapers", db.query_one(
         "SELECT id FROM scrapers WHERE source_id = ?", [source_id])["id"], {"active_version": 2})

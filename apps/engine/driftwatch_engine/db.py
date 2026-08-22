@@ -89,6 +89,7 @@ CREATE TABLE IF NOT EXISTS heal_events (
   version_after INTEGER,
   status TEXT NOT NULL,             -- "verifying" | "review" | "approved" | "rejected"
   mttr_seconds REAL,
+  seeded INTEGER NOT NULL DEFAULT 0, -- 1 for demo-history rows written by seed.py, never a real measurement
   created_at TEXT NOT NULL
 );
 CREATE TABLE IF NOT EXISTS impact_reports (
@@ -114,6 +115,17 @@ CREATE TABLE IF NOT EXISTS audit_events (
   payload TEXT NOT NULL DEFAULT '{}',
   created_at TEXT NOT NULL
 );
+
+-- Hot-path lookups: every one of these backs a WHERE clause hit on every pipeline
+-- run or every dashboard read (see docs/04_Data/Database_Design.md#indexing-analysis).
+CREATE INDEX IF NOT EXISTS idx_runs_source_id ON runs(source_id);
+CREATE INDEX IF NOT EXISTS idx_snapshots_source_quarantined ON snapshots(source_id, quarantined);
+CREATE INDEX IF NOT EXISTS idx_drift_events_source_id ON drift_events(source_id);
+CREATE INDEX IF NOT EXISTS idx_heal_events_source_id ON heal_events(source_id);
+CREATE INDEX IF NOT EXISTS idx_heal_events_status ON heal_events(status);
+CREATE INDEX IF NOT EXISTS idx_heal_events_trigger_event_id ON heal_events(trigger_event_id);
+CREATE INDEX IF NOT EXISTS idx_contracts_source_id ON contracts(source_id);
+CREATE INDEX IF NOT EXISTS idx_scrapers_source_id ON scrapers(source_id);
 """
 
 _local = threading.local()
@@ -143,6 +155,7 @@ def _connect() -> sqlite3.Connection:
         conn = sqlite3.connect(_db_path, check_same_thread=False)
         conn.row_factory = sqlite3.Row
         conn.execute("PRAGMA journal_mode=WAL")
+        conn.execute("PRAGMA busy_timeout=5000")
         conn.execute("PRAGMA foreign_keys=ON")
         _local.conn = conn
         _local.path = _db_path
