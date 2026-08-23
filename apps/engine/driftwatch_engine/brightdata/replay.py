@@ -88,7 +88,7 @@ class ReplayClient:
         path = self.fixtures / "snapshots" / source_id / f"{name}.json"
         if not path.exists():
             return None
-        return json.loads(path.read_text())
+        return json.loads(path.read_text(encoding="utf-8"))
 
     def _truth(self, source_id: str, variant: str) -> dict:
         payload = self._fixture(source_id, variant)
@@ -150,5 +150,5 @@ class ReplayClient:
 
     def discover(self, query: str, intent: str) -> DiscoverResult:
         fixture = self.fixtures / "envelopes" / "discover.json"
-        candidates = json.loads(fixture.read_text())["candidates"] if fixture.exists() else []
+        candidates = json.loads(fixture.read_text(encoding="utf-8"))["candidates"] if fixture.exists() else []
         return DiscoverResult(query=query, candidates=candidates)

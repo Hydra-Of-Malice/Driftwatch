@@ -30,7 +30,7 @@ class GateOutcome(NamedTuple):
 
 def load_spec(source_id: str, contracts_dir: Path | None = None) -> ContractSpec:
     path = (contracts_dir or FIXTURES_DIR / "contracts") / f"{source_id}.yaml"
-    return ContractSpec.model_validate(yaml.safe_load(path.read_text()))
+    return ContractSpec.model_validate(yaml.safe_load(path.read_text(encoding="utf-8")))
 
 
 def normalize_path(concrete: str) -> str:

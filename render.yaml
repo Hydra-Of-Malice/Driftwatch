@@ -1,0 +1,23 @@
+services:
+  - type: web
+    name: driftwatch
+    runtime: python
+    plan: starter
+    buildCommand: pip install -r requirements.txt
+    startCommand: cd apps/engine && gunicorn --workers 1 --threads 4 --timeout 120 --bind 0.0.0.0:$PORT wsgi:app
+    healthCheckPath: /
+    disk:
+      name: driftwatch-data
+      mountPath: /var/data
+      sizeGB: 1
+    envVars:
+      - key: DW_MODE
+        value: replay
+      - key: DW_DB_PATH
+        value: /var/data/driftwatch.db
+      - key: DW_API_TOKEN
+        generateValue: true
+      - key: ANTHROPIC_API_KEY
+        sync: false
+      - key: DW_SLACK_WEBHOOK
+        sync: false

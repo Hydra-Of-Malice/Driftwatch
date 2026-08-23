@@ -50,7 +50,7 @@ def _iso(dt: datetime) -> str:
 
 def _payload(source_id: str, variant: str) -> dict:
     path = FIXTURES_DIR / "snapshots" / source_id / f"{variant}.json"
-    return json.loads(path.read_text())
+    return json.loads(path.read_text(encoding="utf-8"))
 
 
 def ensure_sources() -> None:

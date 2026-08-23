@@ -116,6 +116,17 @@ export function livingWeb(sources, { onSelect } = {}) {
     const group = el("g", { class: recent ? "strand-group tremor" : "strand-group", cursor: "pointer" });
     group.append(el("line", { class: recent ? "strand tremor" : "strand", x1: cx, y1: cy, x2: x, y2: y }));
 
+    // a faint pulse traveling the strand — the visual claim that this is watched continuously, not a static diagram
+    const particle = el("circle", { class: "strand-particle", r: 2.2 });
+    particle.append(el("animateMotion", {
+      dur: `${2.6 + i * 0.5}s`, repeatCount: "indefinite", path: `M ${cx} ${cy} L ${x} ${y}`,
+    }));
+    particle.append(el("animate", {
+      attributeName: "opacity", values: "0;0.85;0", keyTimes: "0;0.5;1",
+      dur: `${2.6 + i * 0.5}s`, repeatCount: "indefinite",
+    }));
+    group.append(particle);
+
     if (recent) {
       const ripple = el("circle", { class: "ripple go", cx: x, cy: y, r: 26, stroke: meta.color,
                                     "stroke-width": 2 });
@@ -148,8 +159,8 @@ export function livingWeb(sources, { onSelect } = {}) {
     svg.append(group);
   });
 
-  // center: the stack
-  svg.append(el("circle", { class: "node-core", cx, cy, r: 34 }));
+  // center: the stack — a slow always-on breathing pulse, not conditional on drift
+  svg.append(el("circle", { class: "node-core center", cx, cy, r: 34 }));
   const core = el("text", { class: "node-label", x: cx, y: cy + 4, "text-anchor": "middle" });
   core.textContent = "your stack";
   svg.append(core);

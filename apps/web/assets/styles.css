@@ -1,7 +1,19 @@
-/* Driftwatch UI — dark observatory theme.
-   Palette: validated per the dataviz method (all-pairs, dark surface #1a1a19).
-   Class marks always pair color with a glyph + label — never color alone. */
+/* Driftwatch UI — three themes on one token set: dark (default), light, spider.
+   Palette: validated per the dataviz method (all-pairs contrast checked per theme —
+   see docs/09_AI_ML or the design notes in git history for the contrast math).
+   Class marks always pair color with a glyph + label — never color alone. This rule
+   holds in every theme; theming only ever changes *values*, never the encoding. */
 
+:root {
+  /* theme-independent tokens: spacing scale, motion, radius, monospace stack */
+  --space-1: 4px; --space-2: 8px; --space-3: 12px; --space-4: 16px; --space-5: 24px; --space-6: 32px;
+  --radius: 12px; --radius-sm: 8px;
+  --ease: cubic-bezier(0.16, 1, 0.3, 1);
+  --fast: 0.15s; --med: 0.25s;
+  --mono: ui-monospace, "SF Mono", "Cascadia Mono", Menlo, Consolas, monospace;
+}
+
+/* ---- theme: dark (default — matches :root when data-theme is absent or "dark") - */
 :root {
   color-scheme: dark;
   --page: #0d0d0d;
@@ -20,7 +32,54 @@
   --c3: #d03b3b;              /* Class 3 material    (square) */
   --c4: #9085e9;              /* Class 4 semantic    (diamond) */
   --c5: #199e70;              /* Class 5 availability (ring) */
-  --mono: ui-monospace, "SF Mono", "Cascadia Mono", Menlo, Consolas, monospace;
+  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.35);
+  --shadow-md: 0 18px 50px rgba(0, 0, 0, 0.5);
+}
+
+/* ---- theme: light — a deliberate light theme, not an inverted dark one -------- */
+[data-theme="light"] {
+  color-scheme: light;
+  --page: #f7f6f3;
+  --surface: #ffffff;
+  --surface-2: #f0efec;
+  --ink: #1b1b18;
+  --ink-2: #55534c;
+  --muted: #6b6960;
+  --grid: #e7e5e0;
+  --baseline: #c7c4bb;
+  --ring: rgba(20, 20, 15, 0.09);
+  --accent: #1f5fc4;          /* darkened from the dark theme's blue: 3.64:1 fails as text on white, 6.01:1 passes */
+  --good: #0b7d0b;            /* darkened: original hits 3.35:1 on white and fails as inline gate-check text */
+  --c1: #a56d00;
+  --c2: #6b6960;
+  --c3: #d03b3b;
+  --c4: #9085e9;
+  --c5: #199e70;
+  --shadow-sm: 0 1px 2px rgba(20, 20, 15, 0.06), 0 8px 24px rgba(20, 20, 15, 0.08);
+  --shadow-md: 0 12px 32px rgba(20, 20, 15, 0.12), 0 2px 6px rgba(20, 20, 15, 0.08);
+}
+
+/* ---- theme: spider — Spider-Man palette, same dashboard-grade contrast rigor -- */
+[data-theme="spider"] {
+  color-scheme: dark;
+  --page: #0a0a14;
+  --surface: #15151f;
+  --surface-2: #1d1d2c;
+  --ink: #ffffff;
+  --ink-2: #c9c7da;
+  --muted: #8b899e;
+  --grid: #2b2b3d;
+  --baseline: #3c3c52;
+  --ring: rgba(255, 255, 255, 0.10);
+  --accent: #4c7fff;          /* Spidey blue */
+  --good: #39d98a;            /* radioactive-spider green */
+  --c1: #e0a72e;              /* structural — web-shooter gold */
+  --c2: #8b899e;
+  --c3: #f23f55;              /* material — classic Spidey red */
+  --c4: #c15cff;              /* semantic — Spider-Verse magenta; the flagship class gets the loudest color */
+  --c5: #2bc8c1;              /* availability — web-fluid cyan */
+  --shadow-sm: 0 2px 10px rgba(76, 127, 255, 0.18);
+  --shadow-md: 0 20px 55px rgba(0, 0, 0, 0.6), 0 0 40px rgba(76, 127, 255, 0.08);
 }
 
 * { box-sizing: border-box; }
@@ -30,13 +89,29 @@ body {
   color: var(--ink);
   font: 14px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif;
   -webkit-font-smoothing: antialiased;
+  transition: background-color var(--med) var(--ease), color var(--med) var(--ease);
+  position: relative;
 }
 a { color: var(--accent); text-decoration: none; }
 a:hover { text-decoration: underline; }
 button { font: inherit; }
 :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+button, a, .chip, .rail a, .gate-dot {
+  transition: background-color var(--fast) var(--ease), color var(--fast) var(--ease),
+    border-color var(--fast) var(--ease), box-shadow var(--fast) var(--ease), filter var(--fast) var(--ease);
+}
 
-/* ---- shell ------------------------------------------------------------- */
+/* ---- spider mode: web-line texture + strand sheen, layered under content ------ */
+[data-theme="spider"] body::before {
+  content: ""; position: fixed; inset: 0; pointer-events: none; z-index: 0; opacity: 0.05;
+  background-image:
+    repeating-conic-gradient(from 0deg at 0% 0%, var(--ink) 0deg 0.4deg, transparent 0.4deg 15deg),
+    repeating-radial-gradient(circle at 0% 0%, transparent 0 64px, var(--ink) 64px 65px, transparent 65px 130px);
+}
+[data-theme="spider"] .shell { position: relative; z-index: 1; }
+[data-theme="spider"] .strand { filter: drop-shadow(0 0 1px var(--ink)); }
+
+/* ---- shell --------------------------------------------------------------- */
 .shell { display: grid; grid-template-columns: 208px 1fr; min-height: 100vh; }
 .rail {
   position: sticky; top: 0; height: 100vh; padding: 20px 14px;
@@ -44,12 +119,17 @@ button { font: inherit; }
 }
 .rail a {
   display: flex; align-items: center; gap: 10px; padding: 9px 12px; border-radius: 8px;
-  color: var(--ink-2); font-weight: 500;
+  color: var(--ink-2); font-weight: 500; position: relative;
 }
 .rail a:hover { background: var(--surface); text-decoration: none; color: var(--ink); }
 .rail a.active { background: var(--surface-2); color: var(--ink); }
-.nav-ico { width: 18px; text-align: center; color: var(--muted); font-size: 12px; }
+.rail a.active::before {
+  content: ""; position: absolute; left: -14px; top: 8px; bottom: 8px; width: 3px;
+  border-radius: 0 3px 3px 0; background: var(--accent);
+}
+.nav-ico { width: 18px; height: 18px; display: grid; place-items: center; color: var(--muted); flex: none; }
 .rail a.active .nav-ico { color: var(--accent); }
+.nav-ico svg { width: 16px; height: 16px; stroke: currentColor; fill: none; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
 .wordmark {
   display: flex; align-items: center; gap: 9px; font-weight: 700; letter-spacing: 0.12em;
   font-size: 13px; color: var(--ink); margin: 2px 12px 18px;
@@ -61,15 +141,34 @@ button { font: inherit; }
 .rail-foot { margin-top: auto; display: grid; gap: 10px; }
 .rail-note { color: var(--muted); font-size: 11px; line-height: 1.45; }
 #mode-chip { color: var(--ink-2); font-family: var(--mono); }
-.view { padding: 26px 32px 80px; max-width: 1180px; }
+.view { padding: 26px 32px 80px; max-width: 1180px; position: relative; z-index: 1; }
 
-/* ---- typography & cards ------------------------------------------------ */
+/* ---- theme switch -------------------------------------------------------- */
+.theme-switch { display: flex; gap: 3px; background: var(--page); border: 1px solid var(--ring); border-radius: 999px; padding: 3px; }
+.theme-switch button {
+  flex: 1; display: grid; place-items: center; padding: 6px 0; border: none; border-radius: 999px;
+  background: transparent; color: var(--muted); cursor: pointer; line-height: 0;
+}
+.theme-switch button svg { width: 14px; height: 14px; }
+.theme-switch button:hover { color: var(--ink-2); }
+.theme-switch button.active { background: var(--surface-2); color: var(--accent); box-shadow: var(--shadow-sm); }
+[data-theme="spider"] .theme-switch button.active { color: var(--c4); }
+
+/* ---- typography & cards --------------------------------------------------- */
 h1 { font-size: 21px; margin: 0 0 4px; letter-spacing: -0.01em; }
-h2 { font-size: 15px; margin: 26px 0 10px; color: var(--ink); }
+h2 {
+  font-size: 12px; margin: var(--space-6) 0 var(--space-3); color: var(--muted); font-weight: 700;
+  text-transform: uppercase; letter-spacing: 0.08em;
+}
+h2.card-title { text-transform: none; letter-spacing: normal; font-size: 15px; color: var(--ink); font-weight: 650; }
 .sub { color: var(--muted); margin: 0 0 20px; }
 .card {
-  background: var(--surface); border: 1px solid var(--ring); border-radius: 12px;
-  padding: 16px 18px;
+  background: var(--surface); border: 1px solid var(--ring); border-radius: var(--radius);
+  padding: 16px 18px; border-left: 3px solid transparent;
+}
+a.card { display: block; }
+a.card:hover, .card.clickable:hover {
+  transform: translateY(-2px); box-shadow: var(--shadow-md); border-color: var(--ring); cursor: pointer;
 }
 .grid { display: grid; gap: 14px; }
 .grid > * { min-width: 0; }
@@ -80,11 +179,23 @@ h2 { font-size: 15px; margin: 26px 0 10px; color: var(--ink); }
 @media (max-width: 980px) { .cols-2, .cols-3, .cols-4 { grid-template-columns: 1fr; } }
 
 /* stat tiles — hero numbers in text ink, label in muted (dataviz stat-tile spec) */
-.tile .tile-value { font-size: 26px; font-weight: 650; letter-spacing: -0.02em; }
+.tile { position: relative; overflow: hidden; }
+.tile .tile-value { font-size: 26px; font-weight: 650; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
 .tile .tile-label { color: var(--muted); font-size: 12px; margin-top: 2px; }
 .tile .tile-note { color: var(--ink-2); font-size: 12px; margin-top: 6px; }
+.tile.hero .tile-value { font-size: 34px; }
+.tile.up { border-left-color: var(--good); }
+.tile.down { border-left-color: var(--c3); }
 
-/* ---- class badges (color + glyph + label, never color alone) ----------- */
+/* ---- empty states ---------------------------------------------------------- */
+.empty-state {
+  display: grid; justify-items: center; gap: 10px; padding: 48px 20px; text-align: center; color: var(--muted);
+}
+.empty-state svg { opacity: 0.5; }
+.empty-state .empty-title { color: var(--ink-2); font-weight: 600; font-size: 14px; }
+.empty-state .empty-sub { font-size: 12px; max-width: 340px; }
+
+/* ---- class badges (color + glyph + label, never color alone) ------------- */
 .badge {
   display: inline-flex; align-items: center; gap: 7px; padding: 3px 10px 3px 8px;
   border-radius: 999px; font-size: 12px; font-weight: 600; border: 1px solid var(--ring);
@@ -94,7 +205,7 @@ h2 { font-size: 15px; margin: 26px 0 10px; color: var(--ink); }
 .badge-good { color: var(--good); }
 .sev { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; }
 
-/* ---- tables ------------------------------------------------------------ */
+/* ---- tables --------------------------------------------------------------- */
 table { width: 100%; border-collapse: collapse; font-size: 13px; }
 th { text-align: left; color: var(--muted); font-weight: 500; padding: 7px 10px; border-bottom: 1px solid var(--grid); }
 td { padding: 7px 10px; border-bottom: 1px solid var(--grid); vertical-align: top; }
@@ -108,12 +219,13 @@ code, .mono { font-family: var(--mono); font-size: 12px; }
   border: 1px solid var(--grid); border-radius: 8px; padding: 12px; color: var(--ink-2);
 }
 
-/* ---- buttons ----------------------------------------------------------- */
+/* ---- buttons ---------------------------------------------------------------- */
 .btn {
   background: var(--accent); color: #fff; border: none; border-radius: 8px;
   padding: 8px 14px; font-weight: 600; cursor: pointer;
 }
 .btn:hover { filter: brightness(1.1); }
+.btn:disabled, .ghost-btn:disabled { opacity: 0.55; cursor: not-allowed; filter: none; transform: none; }
 .btn-danger { background: var(--c3); }
 .ghost-btn {
   background: transparent; color: var(--ink-2); border: 1px solid var(--ring);
@@ -127,22 +239,29 @@ code, .mono { font-family: var(--mono); font-size: 12px; }
 }
 .chip.active { background: var(--surface-2); color: var(--ink); border-color: var(--accent); }
 
-/* ---- living web -------------------------------------------------------- */
+/* ---- living web ------------------------------------------------------------ */
 .web-wrap { display: grid; grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr); gap: 14px; }
 @media (max-width: 980px) { .web-wrap { grid-template-columns: 1fr; } }
 .web-svg { width: 100%; height: auto; display: block; }
 .strand { stroke: var(--baseline); stroke-width: 1.5; }
 .strand.tremor { animation: tremor 0.9s ease-in-out; }
+.strand-particle { fill: var(--accent); opacity: 0.85; }
 .node-core { fill: var(--surface-2); stroke: var(--ring); }
+.node-core.center { animation: center-breathe 4s ease-in-out infinite; transform-origin: center; transform-box: fill-box; }
 .node-label { fill: var(--ink-2); font-size: 12px; font-weight: 600; }
 .node-sub { fill: var(--muted); font-size: 10.5px; }
 .ripple { fill: none; opacity: 0; }
 .ripple.go { animation: ripple 1.6s ease-out; }
 .feed { display: grid; gap: 10px; max-height: 460px; overflow: auto; }
-.feed-item { display: grid; gap: 4px; padding: 10px 12px; border: 1px solid var(--grid); border-radius: 10px; }
+.feed-item { display: grid; gap: 4px; padding: 10px 12px; border: 1px solid var(--grid); border-radius: 10px; border-left: 3px solid transparent; }
 .feed-item time { color: var(--muted); font-size: 11px; }
 
-/* ---- seismograph ------------------------------------------------------- */
+/* spider mode: recent drift reads as spider-sense, not a generic shake */
+[data-theme="spider"] .strand.tremor { animation: web-sense 0.9s ease-in-out; }
+[data-theme="spider"] .node-core:has(+ * .ripple.go),
+[data-theme="spider"] .tremor .node-core { animation: sense-pulse 0.7s ease-out; }
+
+/* ---- seismograph ------------------------------------------------------------ */
 .seismo { width: 100%; height: auto; display: block; }
 .seismo .axis { stroke: var(--baseline); stroke-width: 1; }
 .seismo .gridline { stroke: var(--grid); stroke-width: 1; }
@@ -151,7 +270,7 @@ code, .mono { font-family: var(--mono); font-size: 12px; }
 .legend { display: flex; gap: 14px; flex-wrap: wrap; margin-top: 10px; color: var(--ink-2); font-size: 12px; }
 .legend span { display: inline-flex; align-items: center; gap: 6px; }
 
-/* ---- heal gates -------------------------------------------------------- */
+/* ---- heal gates -------------------------------------------------------------- */
 .gates { display: grid; gap: 0; }
 .gate { display: grid; grid-template-columns: 26px 1fr auto; align-items: start; gap: 12px; padding: 10px 4px; }
 .gate + .gate { border-top: 1px dashed var(--grid); }
@@ -160,16 +279,32 @@ code, .mono { font-family: var(--mono); font-size: 12px; }
   border: 1.5px solid var(--baseline); color: var(--muted); font-size: 12px; margin-top: 1px;
 }
 .gate.pass .gate-dot { border-color: var(--good); color: var(--good); }
+.gate.pass .gate-dot.hero { animation: web-snap 0.5s var(--ease); }
 .gate.fail .gate-dot { border-color: var(--c3); color: var(--c3); }
 .gate.run .gate-dot { border-color: var(--accent); color: var(--accent); animation: breathe 1.4s infinite; }
+.gate-dot.hero {
+  width: 32px; height: 32px; font-size: 15px; border-width: 2px; margin-top: 0;
+}
+.gate.fail .gate-dot.hero { animation: fail-glow 1.8s ease-in-out infinite; }
 .gate-name { font-weight: 600; }
 .gate-detail { color: var(--muted); font-size: 12px; }
 
-/* ---- drawer / toasts / tooltip ----------------------------------------- */
+/* semantics-drift hero comparison — the single most important 2 seconds in the app */
+.semantic-hero {
+  display: grid; gap: 4px; padding: 14px; margin: 4px 0 14px; border-radius: var(--radius-sm);
+  background: var(--surface-2); border: 1px solid var(--c3);
+}
+.semantic-hero .sh-row { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+.semantic-hero .sh-price { font-size: 28px; font-weight: 700; letter-spacing: -0.02em; }
+.semantic-hero .sh-unit-before { color: var(--muted); text-decoration: line-through; font-size: 13px; }
+.semantic-hero .sh-unit-after { color: var(--c3); font-weight: 700; font-size: 13px; }
+.semantic-hero .sh-caption { color: var(--ink-2); font-size: 12px; margin-top: 2px; }
+
+/* ---- drawer / toasts / tooltip ------------------------------------------------ */
 .demo-drawer {
   position: fixed; right: 18px; bottom: 18px; width: 330px; z-index: 40;
   background: var(--surface); border: 1px solid var(--ring); border-radius: 14px;
-  padding: 16px; box-shadow: 0 18px 50px rgba(0, 0, 0, 0.5);
+  padding: 16px; box-shadow: var(--shadow-md); border-top: 3px solid var(--accent);
 }
 .demo-drawer h3 { margin: 0 0 4px; font-size: 13px; }
 .demo-drawer .sub { margin-bottom: 12px; font-size: 12px; }
@@ -183,31 +318,47 @@ code, .mono { font-family: var(--mono); font-size: 12px; }
 .toast {
   background: var(--surface-2); border: 1px solid var(--ring); border-left: 3px solid var(--accent);
   border-radius: 10px; padding: 12px 14px; font-size: 13px; color: var(--ink);
-  animation: slide-in 0.25s ease-out; box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45);
+  animation: slide-in var(--med) var(--ease); box-shadow: var(--shadow-md);
 }
 .toast .t-head { font-weight: 700; display: flex; gap: 8px; align-items: center; margin-bottom: 3px; }
 .toast time { color: var(--muted); font-size: 11px; }
 .tooltip {
   position: fixed; z-index: 60; background: var(--surface-2); border: 1px solid var(--ring);
   border-radius: 8px; padding: 8px 10px; font-size: 12px; color: var(--ink);
-  pointer-events: none; max-width: 320px; box-shadow: 0 10px 28px rgba(0, 0, 0, 0.5);
+  pointer-events: none; max-width: 320px; box-shadow: var(--shadow-md);
 }
 .tooltip .tt-sub { color: var(--muted); }
 
-/* ---- confidence dial --------------------------------------------------- */
+/* ---- confidence dial ---------------------------------------------------------- */
 .dial-track { stroke: var(--grid); }
 .dial-arc { stroke: var(--accent); transition: stroke-dashoffset 0.8s ease; }
 .dial-num { fill: var(--ink); font-size: 15px; font-weight: 700; }
 .dial-cap { fill: var(--muted); font-size: 9px; }
 
-/* ---- animations (disabled under reduced motion) ------------------------ */
+/* ---- route transition -------------------------------------------------------- */
+.view.loading { opacity: 0.45; }
+
+/* ---- animations (disabled under reduced motion) ------------------------------ */
 @keyframes breathe { 50% { box-shadow: 0 0 0 7px rgba(57, 135, 229, 0); } }
+@keyframes center-breathe { 50% { transform: scale(1.035); } }
 @keyframes ripple { 0% { opacity: 0.9; } 100% { opacity: 0; } }
 @keyframes tremor {
   20% { transform: translateX(1.6px); } 40% { transform: translateX(-1.4px); }
   60% { transform: translateX(1px); } 80% { transform: translateX(-0.6px); }
 }
+@keyframes web-sense {
+  15% { transform: translateX(2.2px); } 30% { transform: translateX(-2px); }
+  45% { transform: translateX(1.6px); } 60% { transform: translateX(-1.2px); }
+  75% { transform: translateX(0.6px); } 90% { transform: translateX(-0.3px); }
+}
+@keyframes sense-pulse { 0% { filter: drop-shadow(0 0 0 var(--c3)); } 50% { filter: drop-shadow(0 0 6px var(--c3)); } 100% { filter: drop-shadow(0 0 0 var(--c3)); } }
+@keyframes web-snap { 0% { transform: scale(1); } 50% { transform: scale(1.18); } 100% { transform: scale(1); } }
+@keyframes fail-glow {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(210, 59, 59, 0.35); }
+  50% { box-shadow: 0 0 0 6px rgba(210, 59, 59, 0); }
+}
 @keyframes slide-in { from { transform: translateX(24px); opacity: 0; } }
+@keyframes count-fade { from { opacity: 0; transform: translateY(3px); } }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; }
 }

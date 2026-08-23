@@ -19,7 +19,7 @@ class CostEstimate(BaseModel):
 
 def load_usage(repo_dir: Path) -> dict:
     path = repo_dir / "usage.yaml"
-    return yaml.safe_load(path.read_text()) if path.exists() else {}
+    return yaml.safe_load(path.read_text(encoding="utf-8")) if path.exists() else {}
 
 
 def estimate(drift_class: DriftClass, changes: list[FieldChange], usage: dict) -> CostEstimate:

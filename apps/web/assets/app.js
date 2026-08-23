@@ -44,13 +44,42 @@ function money(delta) {
   return `${sign}$${Math.abs(delta).toLocaleString(undefined, { maximumFractionDigits: 0 })}/mo`;
 }
 
-function tile(value, label, note = "") {
-  return html`<div class="card tile"><div class="tile-value num">${esc(value)}</div>
+function tile(value, label, note = "", opts = {}) {
+  const cls = `tile${opts.hero ? " hero" : ""}${opts.sentiment === "up" ? " up" : opts.sentiment === "down" ? " down" : ""}`;
+  const isNumeric = typeof value === "number" && Number.isFinite(value);
+  return html`<div class="card ${cls}">
+    <div class="tile-value num"${isNumeric ? ` data-count-to="${value}"` : ""}>${esc(isNumeric ? 0 : value)}</div>
     <div class="tile-label">${esc(label)}</div>${note ? `<div class="tile-note">${esc(note)}</div>` : ""}</div>`;
+}
+
+function animateCounts(root) {
+  for (const node of root.querySelectorAll("[data-count-to]")) {
+    const target = Number(node.dataset.countTo);
+    node.removeAttribute("data-count-to");
+    const start = performance.now();
+    const duration = 650;
+    const step = (now) => {
+      const t = Math.min(1, (now - start) / duration);
+      node.textContent = Math.round(target * (1 - Math.pow(1 - t, 3))).toLocaleString();
+      if (t < 1) requestAnimationFrame(step);
+    };
+    requestAnimationFrame(step);
+  }
+}
+
+function emptyState(title, sub) {
+  return fromHtml(html`<div class="empty-state">
+    <svg width="52" height="52" viewBox="0 0 52 52" aria-hidden="true">
+      <circle cx="26" cy="26" r="20" fill="none" stroke="var(--baseline)" stroke-width="1.5" stroke-dasharray="3 5"/>
+      <circle cx="26" cy="26" r="4" fill="var(--baseline)"/></svg>
+    <div class="empty-title">${esc(title)}</div>
+    <div class="empty-sub">${esc(sub)}</div>
+  </div>`);
 }
 
 function mount(node, ...children) {
   node.replaceChildren(...children);
+  animateCounts(node);
 }
 
 function section(titleText) {
@@ -64,6 +93,35 @@ function fromHtml(markup) {
   template.innerHTML = markup.trim();
   return template.content;
 }
+
+/* ---- theming --------------------------------------------------------------
+   data-theme on <html> drives every color via CSS custom properties (styles.css).
+   This layer only ever persists the choice and swaps the favicon — no theme ever
+   changes behavior, decisions, or data, only presentation. */
+
+const FAVICONS = {
+  dark: "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='34' fill='none' stroke='%233987e5' stroke-width='8'/><circle cx='50' cy='50' r='10' fill='%23d03b3b'/></svg>",
+  light: "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='34' fill='none' stroke='%231f5fc4' stroke-width='8'/><circle cx='50' cy='50' r='10' fill='%23d03b3b'/></svg>",
+  spider: "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='40' fill='%230a0a14'/><ellipse cx='50' cy='58' rx='14' ry='18' fill='%23f23f55'/><circle cx='50' cy='34' r='9' fill='%23f23f55'/><path d='M38 44 L12 32 M38 52 L8 54 M38 62 L12 74 M62 44 L88 32 M62 52 L92 54 M62 62 L88 74' stroke='%23111' stroke-width='4' fill='none'/></svg>",
+};
+
+function applyTheme(theme) {
+  const name = FAVICONS[theme] ? theme : "dark";
+  document.documentElement.dataset.theme = name;
+  document.getElementById("favicon").setAttribute("href", FAVICONS[name]);
+  document.querySelectorAll(".theme-switch button").forEach((b) =>
+    b.classList.toggle("active", b.dataset.themeSet === name));
+  try { localStorage.setItem("dw-theme", name); } catch { /* private browsing, etc. — theme just won't persist */ }
+}
+
+document.querySelectorAll(".theme-switch button").forEach((btn) =>
+  btn.addEventListener("click", () => applyTheme(btn.dataset.themeSet)));
+
+(() => {
+  let saved = "dark";
+  try { saved = localStorage.getItem("dw-theme") || "dark"; } catch { /* ignore */ }
+  applyTheme(saved);
+})();
 
 /* ---- toasts (in-app alert channel) -------------------------------------- */
 
@@ -107,24 +165,31 @@ async function renderWeb() {
       ${tile(stats.sources, "sources watched")}
       ${tile(Object.entries(stats.events_by_class).reduce((n, [, v]) => n + v, 0), "drift events (12d)")}
       ${tile(stats.heal_mttr_seconds ? `${stats.heal_mttr_seconds}s` : "—", "heal MTTR",
-             stats.heal_mttr_seconds ? "detect → verified repair" : "no measured heal yet")}
+             stats.heal_mttr_seconds ? "detect → verified repair" : "no measured heal yet", { hero: true })}
       ${tile(`${Math.round((stats.heal_verification_pass_rate ?? 0) * 100)}%`, "repairs verified",
-             `${stats.credits_spent} Bright Data credits spent`)}
+             `${stats.credits_spent} Bright Data credits spent`,
+             { sentiment: (stats.heal_verification_pass_rate ?? 1) >= 0.9 ? "up" : "down" })}
     </div>`));
 
   const webCard = document.createElement("div");
   webCard.className = "card";
-  webCard.append(livingWeb(sources, { onSelect: (id) => { location.hash = `#/sources/${id}`; } }));
+  webCard.append(sources.length
+    ? livingWeb(sources, { onSelect: (id) => { location.hash = `#/sources/${id}`; } })
+    : emptyState("No sources watched yet", "Onboard a page from the Sources view to start monitoring."));
   const feed = document.createElement("div");
   feed.className = "card";
   feed.append(fromHtml(`<h2 style="margin-top:0">Latest activity</h2>`));
   const feedList = document.createElement("div");
   feedList.className = "feed";
+  if (!events.length) {
+    feedList.append(emptyState("All quiet", "No drift events recorded yet — the ledger fills in as runs happen."));
+  }
   for (const event of events) {
     const item = document.createElement("a");
     item.className = "feed-item";
     item.href = `#/events/${event.id}`;
     item.style.color = "inherit";
+    item.style.borderLeftColor = CLASSES[event.drift_class]?.color ?? "transparent";
     item.append(badge(event.drift_class, { severity: event.severity }));
     item.append(fromHtml(html`<div>${esc(event.summary.slice(0, 130))}</div>
       <time>${esc(event.source_id)} · ${esc(timeAgo(event.created_at))}</time>`));
@@ -149,7 +214,7 @@ async function renderSources() {
     const card = document.createElement("div");
     card.className = "card";
     card.append(fromHtml(html`
-      <h2 style="margin:0 0 2px"><a href="#/sources/${esc(source.id)}">${esc(source.name)}</a></h2>
+      <h2 class="card-title" style="margin:0 0 2px"><a href="#/sources/${esc(source.id)}">${esc(source.name)}</a></h2>
       <div class="mono" style="color:var(--muted); margin-bottom:10px">${esc(source.url)}</div>
       <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap">
         <span class="badge">scraper ${esc(source.scraper?.collector_id ?? "—")}</span>
@@ -246,13 +311,19 @@ async function renderEvents(filterClass = null) {
   wrap.append(chips);
   const list = document.createElement("div");
   list.className = "grid";
-  for (const event of events.filter((e) => filterClass === null || e.drift_class === filterClass)) {
+  const filtered = events.filter((e) => filterClass === null || e.drift_class === filterClass);
+  if (!filtered.length) {
+    list.append(emptyState("No events in this class",
+      filterClass === null ? "Nothing has drifted yet." : "Try a different class, or clear the filter."));
+  }
+  for (const event of filtered) {
     const card = document.createElement("a");
     card.className = "card";
     card.href = `#/events/${event.id}`;
     card.style.color = "inherit";
     card.style.display = "grid";
     card.style.gap = "8px";
+    card.style.borderLeftColor = CLASSES[event.drift_class]?.color ?? "transparent";
     const head = document.createElement("div");
     head.style.display = "flex";
     head.style.gap = "10px";
@@ -299,6 +370,20 @@ async function renderEventDetail(eventId) {
   left.className = "card";
   left.append(fromHtml(`<h2 style="margin-top:0">What changed</h2>`));
   const changes = event.field_changes ?? [];
+  if (event.drift_class === 4) {
+    const unitChange = changes.find((c) => c.path.includes("unit_context"));
+    if (unitChange) {
+      const entity = (unitChange.path.match(/\[([^\]]+)\]/) || [])[1] ?? "";
+      left.append(fromHtml(html`<div class="semantic-hero">
+        ${entity ? `<div class="sh-row"><span class="sev">${esc(entity)}</span></div>` : ""}
+        <div class="sh-row">
+          <span class="sh-unit-before">${esc(unitChange.before)}</span><span>→</span>
+          <span class="sh-unit-after">${esc(unitChange.after)}</span>
+        </div>
+        <div class="sh-caption">The extracted number didn't move. What it means did — only the semantics gate catches that.</div>
+      </div>`));
+    }
+  }
   left.append(fromHtml(diffTable(changes) || `<p class="sub">No field-level diff (extraction-level event).</p>`));
   const relocations = changes.filter((c) => c.path === "relocation_candidate");
   if (relocations.length) {
@@ -318,14 +403,16 @@ async function renderEventDetail(eventId) {
   dialCard.style.gap = "18px";
   dialCard.style.alignItems = "center";
   dialCard.append(confidenceDial(event.confidence, "confidence"));
-  dialCard.append(fromHtml(html`<div>
+  dialCard.append(fromHtml(html`<div style="flex:1; min-width:0">
     <div class="tile-label">verification verdict</div>
-    <div>${event.after_verdict ? event.after_verdict.gates.map((gate) => html`
-      <div style="display:flex; gap:8px; align-items:center; margin-top:5px">
-        <span style="color:${gate.passed ? "var(--good)" : "var(--c3)"}">${gate.passed ? "✓" : "✕"}</span>
-        <span>${esc(gate.gate)}</span>
-        <span class="sev">${esc(gate.details?.[0] ?? "").slice(0, 60)}</span></div>`).join("")
-      : `<span class="sub">n/a</span>`}</div></div>`));
+    <div class="gates" style="margin-top:4px">${event.after_verdict ? event.after_verdict.gates.map((gate) => {
+      const hero = gate.gate === "semantics" && !gate.passed;
+      return html`<div class="gate ${gate.passed ? "pass" : "fail"}">
+        <div class="gate-dot${hero ? " hero" : ""}">${gate.passed ? "✓" : "✕"}</div>
+        <div><div class="gate-name">${esc(gate.gate)}</div>
+          <div class="gate-detail">${esc(gate.details?.[0] ?? "").slice(0, 90)}</div></div>
+        <div></div></div>`;
+    }).join("") : `<span class="sub">n/a</span>`}</div></div>`));
   right.append(dialCard);
 
   if (event.impact) {
@@ -391,8 +478,9 @@ async function renderHeal() {
     <p class="sub">A healed scraper's output is never trusted — it is re-proven against the contract.</p>
     <div class="grid cols-4">
       ${tile(stats.heal_mttr_seconds ? `${stats.heal_mttr_seconds}s` : "—", "mean time to verified repair",
-             stats.heal_mttr_seconds ? "" : "no measured heal yet — seeded demo history is excluded")}
-      ${tile(`${Math.round((stats.heal_verification_pass_rate ?? 0) * 100)}%`, "repairs verified & approved")}
+             stats.heal_mttr_seconds ? "" : "no measured heal yet — seeded demo history is excluded", { hero: true })}
+      ${tile(`${Math.round((stats.heal_verification_pass_rate ?? 0) * 100)}%`, "repairs verified & approved", "",
+             { sentiment: (stats.heal_verification_pass_rate ?? 1) >= 0.9 ? "up" : "down" })}
       ${tile(stats.quarantined_snapshots, "snapshots quarantined", "never served downstream")}
       ${tile(stats.credits_spent, "Bright Data credits spent", "1 credit per page load")}
     </div>`));
@@ -466,6 +554,14 @@ async function renderHeal() {
   }
 
   wrap.append(section("Heal history"));
+  if (!heals.length) {
+    const box = document.createElement("div");
+    box.className = "card";
+    box.append(emptyState("No heals yet", "This source hasn't needed a repair — a green history is a quiet one."));
+    wrap.append(box);
+    mount(view, wrap);
+    return;
+  }
   const table = fromHtml(html`<div class="card" style="overflow:auto"><table>
     <thead><tr><th>when</th><th>source</th><th>decision</th><th>by</th><th>version</th><th>MTTR</th></tr></thead>
     <tbody>${heals.map((heal) => html`<tr>
@@ -563,7 +659,9 @@ async function route() {
     if (!match) continue;
     document.querySelectorAll(".rail a[data-nav]").forEach((a) =>
       a.classList.toggle("active", a.dataset.nav === nav));
+    view.classList.add("loading");
     await render(match);
+    view.classList.remove("loading");
     if (poll) pollTimer = setInterval(() => render(match), 4000);
     return;
   }

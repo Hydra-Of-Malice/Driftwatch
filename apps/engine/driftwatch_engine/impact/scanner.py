@@ -44,8 +44,10 @@ def scan_repo(repo_dir: Path, entities: list[str]) -> list[CallSite]:
         if not path.is_file() or path.suffix not in SCANNABLE:
             continue
         rel = path.relative_to(repo_dir).as_posix()  # stable across platforms
-        for lineno, line in enumerate(path.read_text(errors="ignore").splitlines(), start=1):
+        for lineno, line in enumerate(path.read_text(encoding="utf-8", errors="ignore").splitlines(), start=1):
             for entity in entities:
                 if entity in line:
+                    # one row per source line: a line naming several entities is still one call site
                     sites.append(CallSite(file=rel, line=lineno, snippet=line.strip()[:160], entity=entity))
+                    break
     return sites
