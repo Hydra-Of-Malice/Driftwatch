@@ -1,4 +1,4 @@
-"""Run the Driftwatch engine + UI:  python apps/engine/serve.py"""
+"""Run the Driftwatch engine + UI:  python backend/serve.py"""
 
 import sys
 from pathlib import Path

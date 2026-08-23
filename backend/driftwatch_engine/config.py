@@ -11,10 +11,10 @@ from pathlib import Path
 
 from pydantic import BaseModel
 
-REPO_ROOT = Path(__file__).resolve().parents[3]
+REPO_ROOT = Path(__file__).resolve().parents[2]
 FIXTURES_DIR = REPO_ROOT / "fixtures"
 MIRROR_DIR = REPO_ROOT / "mirror"
-WEB_DIR = REPO_ROOT / "apps" / "web"
+WEB_DIR = REPO_ROOT / "frontend"
 
 
 def _load_dotenv(path: Path) -> None:

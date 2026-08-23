@@ -19,7 +19,7 @@ from driftwatch_engine.pipeline.runner import Deps  # noqa: E402
 
 
 def fixture(source_id: str, name: str) -> dict:
-    return json.loads((FIXTURES_DIR / "snapshots" / source_id / f"{name}.json").read_text())
+    return json.loads((FIXTURES_DIR / "snapshots" / source_id / f"{name}.json").read_text(encoding="utf-8"))
 
 
 class EngineTestCase(unittest.TestCase):

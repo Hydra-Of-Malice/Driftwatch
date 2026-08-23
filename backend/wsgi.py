@@ -1,4 +1,4 @@
-"""WSGI entrypoint for gunicorn: `gunicorn --workers 1 --chdir apps/engine wsgi:app`
+"""WSGI entrypoint for gunicorn: `gunicorn --workers 1 --chdir backend wsgi:app`
 
 Mirrors serve.py's startup (db, seed, scheduler) but exposes a module-level
 `app` instead of calling `app.run()` — gunicorn owns the HTTP server.

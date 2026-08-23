@@ -15,6 +15,6 @@ jobs:
       - name: Install dependencies
         run: pip install flask "pydantic>=2" jsonschema pyyaml httpx ruff
       - name: Lint
-        run: ruff check apps/engine
+        run: ruff check backend
       - name: Tests (contracts, drift, healing, E2E mirror-break, API)
-        run: cd apps/engine && python -m unittest discover -s tests -v
+        run: cd backend && python -m unittest discover -s tests -v
