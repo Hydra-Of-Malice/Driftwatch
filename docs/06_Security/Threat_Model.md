@@ -30,7 +30,7 @@
 | TB2 | Third-party page → extraction payload | None (content is inherently untrusted) |
 | TB3 | Payload → heal prompt → vendor AI | **None** |
 | TB4 | Payload → SPA DOM | Partial (`esc()`) |
-| TB5 | App → vendor CLI subprocess | List-form argv, minimal env ✅ |
+| TB5 | App → vendor CLI subprocess | List-form argv, resolved absolute binary, timeout ✅ — but the child inherits the **full parent environment**, so `DW_API_TOKEN` / `ANTHROPIC_API_KEY` / `DW_SLACK_WEBHOOK` are visible to it (accepted trade-off, [Security Architecture § C2](Security_Architecture.md#c2--subprocess-invocation-implemented-full-environment-inheritance-is-an-accepted-trade-off)) |
 | TB6 | App → filesystem | Partial |
 
 ---
@@ -55,6 +55,7 @@
 | T-14 | Info disclosure | A8 | Webhook abuse | `.env` read access | Low | Medium | **LOW** | Secrets manager | **NOT IMPLEMENTED** |
 | T-15 | Tampering | — | Supply-chain compromise | Unpinned deps, no scanning | Low | **High** | **MEDIUM** | Lockfile + `pip-audit` | **NOT IMPLEMENTED** |
 | T-16 | DoS | — | SSRF via onboarding URL | `POST /api/onboard` unvalidated `url` | Low | Medium | **LOW** | URL allowlist | **NOT IMPLEMENTED** |
+| T-17 | Info disclosure | A1, A2, A8 | Malicious or compromised vendor CLI reads host secrets from its inherited environment | `LiveClient._env` copies the full parent env into the child | Low | **High** | **MEDIUM** | Run live mode in a dedicated process/container holding only `BRIGHTDATA_API_KEY` | **NOT IMPLEMENTED — accepted** (added 2026-08-23; see [Security Architecture § C2](Security_Architecture.md#c2--subprocess-invocation-implemented-full-environment-inheritance-is-an-accepted-trade-off)) |
 
 ---
 
@@ -120,7 +121,7 @@ Plus: strip control characters and instruction-like patterns from `expected_exam
 | 19 HTTP routes | All interfaces | **None** |
 | 6 state-changing routes | All interfaces | **None** |
 | Scraped page content | Every run | Contract gates only |
-| Vendor CLI subprocess | Live mode | Hardened ✅ |
+| Vendor CLI subprocess | Live mode | **Partial** — argv/binary/timeout hardened; environment fully inherited (see TB5) |
 | `.env` on disk | Filesystem | OS permissions only |
 | Connected repo | Read on every Class 3/4 | None |
 
@@ -131,6 +132,8 @@ Plus: strip control characters and instruction-like patterns from `expected_exam
 Assuming **localhost-only deployment for a demo** — the documented and intended use, and as of 2026-08-22 also the actual default bind (`127.0.0.1`, was `0.0.0.0`) — T-01 through T-06 collapse to Low, since the attacker must already have local access. **In that configuration the residual risk is acceptable**, and it is now enforced by the default rather than merely documented as the intent.
 
 For **any networked deployment**, T-01–T-03 are downgraded but not closed (auth exists, opt-in) and three HIGH threats remain fully unmitigated; the system should not be exposed until `DW_API_TOKEN` is set and remediation items 3–6 in [Security Architecture](Security_Architecture.md#prioritised-remediation) are complete.
+
+**One deliberate exception, added 2026-08-23: the public Render demo.** That deployment is networked and runs with `DW_API_TOKEN` deliberately unset (`render.yaml`). This is not an oversight and not a weakening of the gate — the gate is untouched and still enforces on every `/api/*` route whenever the variable is set. The demo is served to anonymous judges through the bundled SPA (`frontend/assets/app.js`, which calls `fetch('/api/...')` with no `Authorization` header), and a static browser SPA cannot hold a bearer token secret from the person viewing it; a generated token there locks out its only intended audience while protecting nothing. What makes the residual risk acceptable *for that instance specifically* is that the assets T-01–T-06 are scored against are absent from it: it runs `DW_MODE=replay`, so no Bright Data credential is present and no credits can be spent (A7); the pages it scrapes are the bundled synthetic mirror, not a customer's site; the repo it scans is the fixture directory, not private source (A6); and its SQLite database is ephemeral free-tier disk that is discarded on redeploy, so the audit ledger it writes has no downstream consumer to mislead (A3, A5). An anonymous visitor approving a synthetic review item *is* the demo. Any deployment that does not hold all four of those conditions — anything live-mode, anything with a real key, anything whose ledger or snapshots are consumed — must set `DW_API_TOKEN`.
 
 T-08 is the exception: it is **not** mitigated by localhost deployment, because the attack originates from a watched third-party page rather than from the network. It is the one threat that applies in the intended configuration.
 

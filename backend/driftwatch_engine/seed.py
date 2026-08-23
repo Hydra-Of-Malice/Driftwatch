@@ -11,7 +11,7 @@ from __future__ import annotations
 import hashlib
 import json
 import random
-from datetime import UTC, datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 from . import db
 from .brightdata.replay import AI_FLOW_STEPS
@@ -78,7 +78,7 @@ def seed_history(days: int = 12, runs_per_day: int = 4) -> None:
     if db.query_one("SELECT id FROM runs LIMIT 1"):
         return  # already seeded (or live) — never double-seed
     rng = random.Random(42)
-    now = datetime.now(UTC)
+    now = datetime.now(timezone.utc)
 
     for source in SOURCES:
         spec = load_spec(source["id"])

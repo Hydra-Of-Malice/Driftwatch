@@ -7,15 +7,19 @@ is what the replay Bright Data client "scrapes").
 
 from __future__ import annotations
 
+import hmac
+import re
 import statistics
+from urllib.parse import urlparse
 
 from flask import Flask, jsonify, request, send_from_directory
 
 from .. import db
-from ..brightdata.live import LiveClient
+from ..brightdata.live import LiveClient, resolve_cli
 from ..brightdata.replay import ReplayClient, WorldState
 from ..config import FIXTURES_DIR, MIRROR_DIR, WEB_DIR, Settings
 from ..domain import CLASS_LABELS
+from ..errors import BrightDataError, ConfigError, DriftwatchError, FailureCategory
 from ..healing.orchestrator import decide_review
 from ..llm.provider import make_provider
 from ..pipeline.runner import Deps, run_source
@@ -25,6 +29,42 @@ VARIANTS = ["v1_baseline", "v2_redesign", "v3_semantic", "v4_material", "v5_gone
 # Reachable with no token even when DW_API_TOKEN is set: the SPA shell, its static
 # assets, and the demo mirror site (public web content by design, not API state).
 PUBLIC_PATH_PREFIXES = ("/assets/", "/mirror/")
+
+# Methods that change state. Everything else is a read.
+WRITE_METHODS = frozenset({"POST", "PUT", "PATCH", "DELETE"})
+
+# Writes that mutate ONLY synthetic, local demo state — the mirror world variant, a pipeline
+# run over fixtures, a review decision on a synthetic heal. None of them reach an external
+# system, spend money, or touch a real customer source. In DW_PUBLIC_DEMO these stay open so
+# an anonymous judge can actually drive the demonstration.
+#
+# `/api/onboard` is deliberately NOT here: it calls Bright Data to create a real collector
+# and, in live mode, spends real credits. It stays behind the token in every configuration.
+DEMO_SAFE_WRITE_PREFIXES = ("/api/demo/", "/api/run", "/api/review/")
+
+# A source_id becomes a filesystem path (`fixtures/contracts/<id>.yaml`) and a
+# primary key, so it is constrained to an unambiguous slug. Without this, an id
+# like `../../secrets` escapes the contracts directory — `Path / "..."` happily
+# walks upward, turning onboarding into an arbitrary-path read.
+SOURCE_ID_RE = re.compile(r"^[a-z0-9][a-z0-9_-]{0,63}$")
+
+
+def _valid_source_id(source_id: str) -> bool:
+    return bool(SOURCE_ID_RE.fullmatch(source_id))
+
+
+def _valid_target_url(url: str) -> bool:
+    """Public http(s) URLs only.
+
+    Two distinct concerns: (1) the scheme allowlist keeps `file://`, `data:` and
+    friends away from the scraper, and (2) a value starting with `-` would be
+    parsed by the Bright Data CLI as an option rather than a positional argument,
+    so it is rejected before it reaches argv.
+    """
+    if not url or url.startswith("-"):
+        return False
+    parsed = urlparse(url)
+    return parsed.scheme in ("http", "https") and bool(parsed.netloc)
 
 
 def build_deps(settings: Settings, world: WorldState) -> Deps:
@@ -43,14 +83,34 @@ def create_app(settings: Settings, world: WorldState | None = None) -> Flask:
     # exactly (see docs/06_Security/Security_Architecture.md). Set it to require
     # `Authorization: Bearer <token>` on every route except the SPA/assets/mirror.
 
+    def _is_open_to_anonymous() -> bool:
+        """Whether this request may proceed without the bearer token.
+
+        Default (DW_PUBLIC_DEMO unset): only the SPA shell, its assets and the mirror
+        site — every /api/* route is gated, which is the right posture for a private
+        or live deployment driven by an operator who can send a header.
+
+        DW_PUBLIC_DEMO=true: additionally open reads and the demo-safe writes, because
+        the only client is an anonymous browser SPA that cannot hold a secret. Routes
+        with external side effects stay gated regardless.
+        """
+        if request.path == "/" or request.path.startswith(PUBLIC_PATH_PREFIXES):
+            return True
+        if not settings.public_demo:
+            return False
+        if request.method not in WRITE_METHODS:
+            return True
+        return request.path.startswith(DEMO_SAFE_WRITE_PREFIXES)
+
     @app.before_request
     def _require_auth():
         if not settings.api_token:
             return None
-        if request.path == "/" or request.path.startswith(PUBLIC_PATH_PREFIXES):
+        if _is_open_to_anonymous():
             return None
         expected = f"Bearer {settings.api_token}"
-        if request.headers.get("Authorization") != expected:
+        # Constant-time: a plain `!=` leaks the shared secret's prefix by timing.
+        if not hmac.compare_digest(request.headers.get("Authorization", ""), expected):
             return jsonify({"error": "unauthorized"}), 401
         return None
 
@@ -178,7 +238,15 @@ def create_app(settings: Settings, world: WorldState | None = None) -> Flask:
     def review_decide(heal_id: int):
         body = request.get_json(force=True)
         approve = bool(body.get("approve"))
-        heal = decide_review(heal_id, approve=approve, client=deps.client)
+        try:
+            heal = decide_review(heal_id, approve=approve, client=deps.client)
+        except ValueError as exc:
+            # Unknown id, or a heal that is not sitting at the review gate. This is a
+            # client error, not a server fault — and it must stay JSON so the SPA can
+            # surface it through the same taxonomy path as every other failure.
+            return jsonify({"error": str(exc), "code": "not_reviewable",
+                            "category": FailureCategory.APPLICATION_ERROR,
+                            "heal_event_id": heal_id}), 409
         if approve:
             run_source(heal["source_id"], deps)  # verify the human-approved template immediately
         return jsonify(_heal_json(db.query_one("SELECT * FROM heal_events WHERE id = ?", [heal_id])))
@@ -234,6 +302,18 @@ def create_app(settings: Settings, world: WorldState | None = None) -> Flask:
         source_id = body.get("id") or (name or "source").lower().replace(" ", "-")
         if not (url and description and name):
             return jsonify({"error": "url, description and name are required"}), 400
+        if not _valid_source_id(source_id):
+            return jsonify({
+                "error": "invalid source id",
+                "detail": ("a source id must match [a-z0-9][a-z0-9_-]{0,63} — it is used as a "
+                           "filesystem path for the contract and as a primary key"),
+                "source_id": source_id,
+            }), 400
+        if not _valid_target_url(url):
+            return jsonify({
+                "error": "invalid target url",
+                "detail": "only public http(s) URLs are accepted",
+            }), 400
         if db.query_one("SELECT id FROM sources WHERE id = ?", [source_id]) is not None:
             return jsonify({"error": "a source with this id already exists", "source_id": source_id}), 409
         contract_path = (deps.contracts_dir or FIXTURES_DIR / "contracts") / f"{source_id}.yaml"
@@ -265,6 +345,53 @@ def create_app(settings: Settings, world: WorldState | None = None) -> Flask:
         return jsonify({"source_id": source_id, "collector_id": envelope.collector_id,
                         "view_url": envelope.view_url, "ai_flow_steps": envelope.completed_steps,
                         "first_run": summary})
+
+    # -- provenance + error surface ----------------------------------------------
+
+    @app.get("/api/meta")
+    def meta():
+        """What is actually driving this instance.
+
+        The UI renders `mode` as a badge so a viewer can never mistake the
+        deterministic replay world for a live Bright Data session. This route is
+        the single source of truth for that claim — see docs/LIVE_VALIDATION.md.
+        """
+        live = settings.mode == "live"
+        return jsonify({
+            "mode": settings.mode,
+            "live": live,
+            "brightdata_cli": resolve_cli() is not None,
+            "brightdata_key_configured": bool(settings.brightdata_api_key),
+            # Live-mode readiness is a fact about configuration, never a fallback:
+            # if this is false in live mode the app raises rather than replaying.
+            "live_ready": live and bool(settings.brightdata_api_key) and resolve_cli() is not None,
+            "data_source": (
+                "Bright Data Scraper Studio (live CLI)" if live
+                else "recorded Bright Data envelopes + controlled mirror site (replay)"
+            ),
+            "auto_approve_threshold": settings.auto_approve_threshold,
+            "auto_reject_threshold": settings.auto_reject_threshold,
+            "gates": ["schema", "invariants", "semantics", "continuity"],
+        })
+
+    @app.errorhandler(BrightDataError)
+    def _brightdata_error(exc: BrightDataError):
+        """A vendor refusal is reported as a vendor refusal — never as a scraper failure.
+
+        Without this the UI would render Bright Data's 403/503 as "extraction
+        broke", which is the exact misattribution the failure taxonomy exists to
+        prevent. HTTP 502 (bad gateway) is the honest status: our upstream failed.
+        """
+        return jsonify({"error": str(exc), **exc.to_dict()}), 502
+
+    @app.errorhandler(ConfigError)
+    def _config_error(exc: ConfigError):
+        return jsonify({"error": str(exc), "code": exc.code,
+                        "category": FailureCategory.APPLICATION_ERROR}), 500
+
+    @app.errorhandler(DriftwatchError)
+    def _driftwatch_error(exc: DriftwatchError):
+        return jsonify({"error": str(exc), "code": exc.code}), 500
 
     return app
 

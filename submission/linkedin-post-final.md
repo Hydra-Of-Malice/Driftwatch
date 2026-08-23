@@ -6,7 +6,7 @@ Finalized from `linkedin-post.md`'s Option A (recommended there: honest, doesn't
 
 ## Image to attach
 
-**`driftwatch_ui_semantic_event.png`** (repo root). This is the strongest single frame you have: schema ✓, invariants ✓, **semantics ✕** — same $2.50 price, meaning silently redefined, `+$626/mo` blast radius, 8+ call sites. It's the one screenshot that makes the whole pitch legible without reading a word of the post.
+**`driftwatch_ui_semantic_event.png`** (repo root). This is the strongest single frame you have: schema ✓, invariants ✓, **semantics ✕** — same $2.50 price, meaning silently redefined, `+$626/mo` blast radius, 9 call sites. It's the one screenshot that makes the whole pitch legible without reading a word of the post.
 
 **Do not use `driftwatch_ui_livingweb.png` or `driftwatch_ui_healcenter.png` as-is** — both display "42.3s heal MTTR" as a headline stat tile, which is a seeded/fabricated value (fixed in the code today, but the screenshots predate the fix and still show it). If you want either of those views for a future post, re-take them against the current build — a fresh capture now shows the real measured behavior instead.
 

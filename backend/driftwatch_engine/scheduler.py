@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import threading
 import time
-from datetime import UTC, datetime
+from datetime import datetime, timezone
 
 from . import db
 from .pipeline.runner import Deps, run_source
@@ -27,7 +27,7 @@ def _due_sources() -> list[dict]:
             due.append(source)
             continue
         started = datetime.fromisoformat(last["started_at"])
-        age_minutes = (datetime.now(UTC) - started).total_seconds() / 60
+        age_minutes = (datetime.now(timezone.utc) - started).total_seconds() / 60
         if age_minutes >= source["schedule_minutes"]:
             due.append(source)
     return due

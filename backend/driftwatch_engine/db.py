@@ -11,7 +11,7 @@ import json
 import sqlite3
 import threading
 from collections.abc import Iterable
-from datetime import UTC, datetime
+from datetime import datetime, timezone
 from typing import Any
 
 SCHEMA = """
@@ -134,7 +134,7 @@ _init_lock = threading.Lock()
 
 
 def now_iso() -> str:
-    return datetime.now(UTC).isoformat(timespec="seconds")
+    return datetime.now(timezone.utc).isoformat(timespec="seconds")
 
 
 def configure(db_path: str) -> None:

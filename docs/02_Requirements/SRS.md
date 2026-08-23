@@ -164,8 +164,8 @@ Full analysis: [Security Architecture](../06_Security/Security_Architecture.md).
 |---|---|---|---|
 | **MNT-001** | Code shall pass `ruff` with the configured rule set (E, F, W, I, UP, B, SIM). | **VALIDATED** | CI green |
 | **MNT-002** | External dependencies shall sit behind Protocol seams. | **IMPLEMENTED** | `BrightDataClient`, `Provider` |
-| **CMP-001** | The system shall run on Python ≥ 3.11. | **VALIDATED** | CI 3.11; verified locally on 3.13.11 |
-| **CMP-002** | The system shall behave identically on Windows and Linux. | **VALIDATED** | Platform-dependent path bug fixed; posix paths asserted |
+| **CMP-001** | The system shall run on Python ≥ 3.10. | **VALIDATED** | CI matrix: {ubuntu-latest, windows-latest} x {3.10, 3.12} |
+| **CMP-002** | The system shall behave identically on Windows and Linux. | **VALIDATED 2026-08-23** | `scanner.py` posix paths asserted, **and** the live path's two Windows-only defects fixed on 2026-08-23: `LiveClient` no longer replaces the child environment with a hardcoded POSIX `PATH` (`brightdata/live.py:99-103`) and resolves the CLI to the absolute `shutil.which` path so the `brightdata.cmd` npm shim launches (`brightdata/live.py:63-74`); pinned by `backend/tests/test_live_client.py:142`. *Correction: this row read **VALIDATED** before 2026-08-23, while [R-20](../06_Security/Risk_Register.md) correctly recorded the `PATH` bug as OPEN. The row was wrong when written; it is accurate now.* |
 | **OBS-001** | Every automated decision shall be reconstructable from the ledger. | **IMPLEMENTED** | `audit_events` |
 | **OBS-002** | The system shall expose operational metrics. | **PARTIALLY IMPLEMENTED** | `/api/stats` only; no Prometheus/OTel |
 | **OBS-003** | The system shall expose a health endpoint. | **NOT IMPLEMENTED** | No `/healthz` |

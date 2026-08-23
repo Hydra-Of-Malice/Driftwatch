@@ -75,7 +75,7 @@ A-3 and A-6 are the two that would most change the engineering if false.
 | Heal prompt ≤ 1000 characters | Bright Data API | `compose_heal_prompt()` truncates on a word boundary; enforced by test |
 | Free tier 5,000 credits/month, 1 credit per page load | Bright Data | `credits_per_page_load` tracked per run; budget **not enforced** |
 | Scraper Studio AI Flow concurrency cap | Bright Data | Handled inside the CLI, which is why `LiveClient` shells out rather than calling REST |
-| Python ≥ 3.11 | `pyproject.toml` | Uses `StrEnum`, `datetime.UTC` |
+| Python ≥ 3.10 | `pyproject.toml` | No 3.11-only constructs: `RunState` is `(str, Enum)`, timestamps use `datetime.timezone.utc` |
 | Public data only | Hackathon rules | Mirror site is self-hosted and clearly labelled |
 | 7-day build window | Hackathon | Drove SQLite, no containers, no auth |
 

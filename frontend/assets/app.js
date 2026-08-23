@@ -2,11 +2,29 @@
 
 import { CLASSES, badge, confidenceDial, hideTooltip, legend, livingWeb, seismograph } from "/assets/viz.js";
 
+/* A failed request is never "something went wrong". The engine answers 502 with
+   {error, code, category, operation, status, hint} so the UI can tell a Bright
+   Data refusal apart from a scraper that genuinely failed — the exact
+   misattribution the failure taxonomy exists to prevent. ApiError carries those
+   fields through to the toast instead of flattening them into a string. */
+class ApiError extends Error {
+  constructor(body, httpStatus) {
+    super(String(body.error || body.message || `request failed (${httpStatus})`));
+    this.name = "ApiError";
+    this.httpStatus = httpStatus;
+    this.category = body.category ?? "";
+    this.operation = body.operation ?? "";
+    this.hint = body.hint ?? "";
+    this.code = body.code ?? "";
+    this.vendorStatus = body.status ?? null;
+  }
+}
+
 async function checkResponse(r) {
   if (!r.ok) {
-    let detail = "";
-    try { detail = (await r.json()).error ?? ""; } catch { /* non-JSON error body */ }
-    throw new Error(detail || `request failed (${r.status})`);
+    let body = null;
+    try { body = await r.json(); } catch { /* non-JSON error body */ }
+    throw new ApiError(body && typeof body === "object" ? body : {}, r.status);
   }
   return r.json();
 }
@@ -59,6 +77,23 @@ function tile(value, label, note = "", opts = {}) {
   return html`<div class="card ${cls}">
     <div class="tile-value num"${isNumeric ? ` data-count-to="${value}"` : ""}>${esc(isNumeric ? 0 : value)}</div>
     <div class="tile-label">${esc(label)}</div>${note ? `<div class="tile-note">${esc(note)}</div>` : ""}</div>`;
+}
+
+/* The four contract gates, in evaluation order. These names are fixed by
+   contracts/engine.py::evaluate — never invent or reorder them here. */
+const CONTRACT_GATES = ["schema", "invariants", "semantics", "continuity"];
+
+/* Bright Data collector identity. The c_* id is the vendor's own handle for this
+   scraper; when the create envelope carried a view_url we link straight into
+   Scraper Studio so the id can be checked against the real console. */
+function collectorBadge(scraper, label = "collector") {
+  const id = scraper?.collector_id;
+  if (!id) return html`<span class="badge">${esc(label)} —</span>`;
+  const body = scraper.view_url
+    ? html`<a href="${esc(scraper.view_url)}" target="_blank" rel="noopener noreferrer"
+        title="Open ${esc(id)} in Bright Data Scraper Studio">${esc(id)} ↗</a>`
+    : esc(id);
+  return html`<span class="badge mono" title="Bright Data collector id">${esc(label)} ${body}</span>`;
 }
 
 function animateCounts(root) {
@@ -161,16 +196,71 @@ function showToast(alert) {
   setTimeout(() => node.remove(), 9500);
 }
 
-function showError(message) {
+/* Plain-language gloss for each machine-readable failure category. The raw
+   category string is still shown verbatim — operators grep for it in the logs. */
+const FAILURE_LABELS = {
+  VENDOR_AUTH_ERROR: "Bright Data rejected the credential",
+  VENDOR_PERMISSION_ERROR: "Bright Data refused this action — not a scraper failure",
+  VENDOR_ACCOUNT_ERROR: "Bright Data account or plan refusal",
+  VENDOR_RATE_LIMIT: "Rate limited by Bright Data",
+  VENDOR_UNAVAILABLE: "Bright Data feature unavailable server-side",
+  VENDOR_TIMEOUT: "Bright Data exceeded our wall clock",
+  VENDOR_BAD_RESPONSE: "Bright Data returned an unreadable envelope",
+  CLI_COMPATIBILITY: "Bright Data CLI missing or its envelope shape drifted",
+  NETWORK_ERROR: "Network failure reaching Bright Data",
+  SCRAPER_FAILURE: "The scraper ran and genuinely failed",
+  SCHEMA_DRIFT: "Extracted payload violated the contract schema",
+  SEMANTIC_DRIFT: "Extracted payload changed meaning",
+  VERIFICATION_FAILURE: "Repair preview failed re-verification",
+  APPLICATION_ERROR: "Driftwatch internal error",
+};
+
+function showError(message, err = null) {
   const box = document.getElementById("toasts");
   const node = document.createElement("div");
   node.className = "toast toast-error";
+  const category = err?.category ?? "";
+  const kind = category.startsWith("VENDOR_") || category === "CLI_COMPATIBILITY" ? "vendor"
+    : category === "SCRAPER_FAILURE" ? "scraper" : "";
   node.append(fromHtml(html`
     <div class="t-head">Driftwatch error</div>
-    <div>${esc(message)}</div>`));
+    <div>${esc(message)}</div>
+    ${category ? html`<div><span class="t-category ${kind}">${esc(category)}</span></div>
+      <div class="t-hint">${esc(FAILURE_LABELS[category] ?? "")}${
+        err?.operation ? ` · ${esc(err.operation)}` : ""}${
+        err?.vendorStatus ? ` · vendor HTTP ${esc(err.vendorStatus)}` : ""}</div>` : ""}
+    ${err?.hint ? html`<div class="t-hint">${esc(err.hint)}</div>` : ""}`));
   node.addEventListener("click", () => node.remove());
   box.append(node);
-  setTimeout(() => node.remove(), 9500);
+  setTimeout(() => node.remove(), category ? 16000 : 9500);
+}
+
+/* ---- provenance: which world is this instance actually running in? --------
+   /api/meta is the single source of truth. Nothing here guesses or defaults to
+   a friendlier answer — if the route can't be reached the badge says so. */
+
+let META = null;
+
+async function loadMeta() {
+  const badge = document.getElementById("mode-badge");
+  const text = badge.querySelector(".mode-text");
+  try {
+    META = await api.get("/meta");
+  } catch (err) {
+    META = null;
+    badge.className = "mode-badge mode-unknown";
+    text.textContent = "MODE UNKNOWN";
+    badge.title = `Could not reach /api/meta — provenance unverified (${err.message})`;
+    return;
+  }
+  const live = META.mode === "live";
+  badge.className = `mode-badge ${live ? "mode-live" : "mode-replay"}`;
+  text.textContent = live ? "LIVE" : "REPLAY";
+  badge.title = live
+    ? `${META.data_source}${META.live_ready ? "" : " — live mode set but CLI/API key not ready"}`
+    : META.data_source;
+  const chip = document.getElementById("mode-chip");
+  if (chip) chip.textContent = META.mode;
 }
 
 /* ---- views --------------------------------------------------------------- */
@@ -238,7 +328,7 @@ async function renderSources() {
       <h2 class="card-title" style="margin:0 0 2px"><a href="#/sources/${esc(source.id)}">${esc(source.name)}</a></h2>
       <div class="mono" style="color:var(--muted); margin-bottom:10px">${esc(source.url)}</div>
       <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap">
-        <span class="badge">scraper ${esc(source.scraper?.collector_id ?? "—")}</span>
+        ${collectorBadge(source.scraper, "scraper")}
         <span class="badge">template v${esc(source.scraper?.active_version ?? 1)}</span>
         <span class="badge">last run: ${esc(source.last_run?.state ?? "never")}</span>
       </div>`));
@@ -262,8 +352,7 @@ async function renderSourceDetail(sourceId) {
   const wrap = document.createElement("div");
   wrap.append(fromHtml(html`
     <h1>${esc(source.name)}</h1>
-    <p class="sub mono">${esc(source.url)} · collector <a href="${esc(source.scraper?.view_url ?? "#")}"
-      target="_blank" rel="noreferrer">${esc(source.scraper?.collector_id ?? "")}</a>
+    <p class="sub mono">${esc(source.url)} · ${collectorBadge(source.scraper)}
       · template v${esc(source.scraper?.active_version ?? 1)} · every ${esc(source.schedule_minutes)}m</p>`));
 
   const seismoCard = document.createElement("div");
@@ -492,8 +581,9 @@ const GATE_STEPS = [
 ];
 
 async function renderHeal() {
-  const [heals, reviewQueue, stats] = await Promise.all([
-    api.get("/heals"), api.get("/review"), api.get("/stats")]);
+  const [heals, reviewQueue, stats, sources] = await Promise.all([
+    api.get("/heals"), api.get("/review"), api.get("/stats"), api.get("/sources")]);
+  const scraperFor = new Map(sources.map((s) => [s.id, s.scraper]));
   const wrap = document.createElement("div");
   wrap.append(fromHtml(html`<h1>Heal Center</h1>
     <p class="sub">A healed scraper's output is never trusted — it is re-proven against the contract.</p>
@@ -511,7 +601,9 @@ async function renderHeal() {
   gatesCard.className = "card";
   gatesCard.style.marginTop = "14px";
   gatesCard.append(fromHtml(html`<h2 style="margin-top:0">Autonomous repair sequence${
-    latest ? ` — latest: ${esc(latest.source_id)} (${esc(timeAgo(latest.created_at))})` : ""}</h2>`));
+    latest ? ` — latest: ${esc(latest.source_id)} (${esc(timeAgo(latest.created_at))})` : ""}</h2>${
+    latest ? html`<div style="margin:-6px 0 10px">${
+      collectorBadge(scraperFor.get(latest.source_id), "healed collector")}</div>` : ""}`));
   const gates = document.createElement("div");
   gates.className = "gates";
   const verdictGates = latest?.verification?.gates ?? [];
@@ -531,6 +623,39 @@ async function renderHeal() {
         `${verdictGates.filter((g) => g.passed).length}/${verdictGates.length} gates` : ""}</div></div>`));
   }
   gatesCard.append(gates);
+
+  /* The "verify" step above is a roll-up. A roll-up is not evidence, so the four
+     contract gates are also broken out individually — each with its own verdict,
+     and with the engine's own `details` shown whenever one fails. */
+  if (latest?.verification) {
+    const verdict = latest.verification;
+    const byName = new Map(verdictGates.map((g) => [g.gate, g]));
+    gatesCard.append(fromHtml(html`
+      <div class="tile-label" style="margin:16px 0 0">Contract gates — verification of Bright Data's preview
+        · composite confidence ${esc(verdict.confidence ?? "—")}
+        · verdict ${esc(verdict.passed ? "PASSED" : "FAILED")}</div>`));
+    const perGate = document.createElement("div");
+    perGate.className = "gates";
+    for (const name of CONTRACT_GATES) {
+      const gate = byName.get(name);
+      const state = !gate ? "" : gate.passed ? "pass" : "fail";
+      const details = (gate?.details ?? []).join(" · ");
+      const fields = gate?.failing_fields ?? [];
+      perGate.append(fromHtml(html`<div class="gate ${state}">
+        <div class="gate-dot">${!gate ? "•" : gate.passed ? "✓" : "✕"}</div>
+        <div><div class="gate-name">${esc(name)}</div>
+          <div class="gate-detail">${esc(!gate ? "not reported by the engine for this heal"
+            : gate.passed ? (details || "clean") : (details || "gate failed"))}</div>
+          ${!gate?.passed && fields.length ?
+            html`<div class="gate-fields">failing fields: ${esc(fields.join(", "))}</div>` : ""}</div>
+        <div class="gate-verdict">${!gate ? "N/A" : gate.passed ? "PASS" : "FAIL"}</div></div>`));
+    }
+    gatesCard.append(perGate);
+    if (verdict.failing_fields?.length) {
+      gatesCard.append(fromHtml(html`<div class="gate-fields" style="margin-top:8px">
+        verdict failing fields: ${esc(verdict.failing_fields.join(", "))}</div>`));
+    }
+  }
   wrap.append(gatesCard);
 
   wrap.append(section(`Review queue (${reviewQueue.length})`));
@@ -543,12 +668,16 @@ async function renderHeal() {
     card.style.marginBottom = "12px";
     card.append(fromHtml(html`
       <h2 style="margin-top:0">${esc(heal.source_id)} · confidence in gray band</h2>
+      <div style="margin:0 0 8px">${collectorBadge(scraperFor.get(heal.source_id), "collector")}</div>
       <div class="tile-label" style="margin:2px 0 6px">machine-composed prompt</div>
       <div class="prompt-block">${esc(heal.composed_prompt)}</div>
       <div class="tile-label" style="margin:10px 0 6px">verification of Bright Data's preview</div>
       <div>${(heal.verification?.gates ?? []).map((gate) => html`
         <span class="badge" style="margin:0 6px 6px 0; color:${gate.passed ? "var(--good)" : "var(--c3)"}">
-        ${gate.passed ? "✓" : "✕"} ${esc(gate.gate)}</span>`).join("")}</div>`));
+        ${gate.passed ? "✓" : "✕"} ${esc(gate.gate)} ${gate.passed ? "PASS" : "FAIL"}</span>`).join("")}</div>
+      ${(heal.verification?.gates ?? []).filter((g) => !g.passed).map((gate) => html`
+        <div class="gate-fields">${esc(gate.gate)}: ${esc((gate.details ?? []).join(" · ") || "gate failed")}${
+          gate.failing_fields?.length ? ` — fields: ${esc(gate.failing_fields.join(", "))}` : ""}</div>`).join("")}`));
     const actions = document.createElement("div");
     actions.style.display = "flex";
     actions.style.gap = "10px";
@@ -562,7 +691,7 @@ async function renderHeal() {
         await api.post(`/review/${heal.id}`, { approve: true });
         renderHeal();
       } catch (err) {
-        showError(`Approve failed: ${err.message}`);
+        showError(`Approve failed: ${err.message}`, err);
         approve.disabled = false;
       }
     });
@@ -575,7 +704,7 @@ async function renderHeal() {
         await api.post(`/review/${heal.id}`, { approve: false });
         renderHeal();
       } catch (err) {
-        showError(`Reject failed: ${err.message}`);
+        showError(`Reject failed: ${err.message}`, err);
         reject.disabled = false;
       }
     });
@@ -594,10 +723,19 @@ async function renderHeal() {
     return;
   }
   const table = fromHtml(html`<div class="card" style="overflow:auto"><table>
-    <thead><tr><th>when</th><th>source</th><th>decision</th><th>by</th><th>version</th><th>MTTR</th></tr></thead>
+    <thead><tr><th>when</th><th>source</th><th>collector</th><th>gates</th><th>decision</th>
+      <th>by</th><th>version</th><th>MTTR</th></tr></thead>
     <tbody>${heals.map((heal) => html`<tr>
       <td>${esc(timeAgo(heal.created_at))}</td>
       <td>${esc(heal.source_id)}</td>
+      <td>${collectorBadge(scraperFor.get(heal.source_id), "")}</td>
+      <td class="mono">${CONTRACT_GATES.map((name) => {
+        const gate = (heal.verification?.gates ?? []).find((g) => g.gate === name);
+        if (!gate) return html`<span title="${esc(name)}: not reported" style="color:var(--muted)">·</span>`;
+        return html`<span title="${esc(name)}: ${esc(gate.passed ? "PASS" : "FAIL")}${
+          gate.passed ? "" : ` — ${esc((gate.details ?? []).join(" · "))}`}"
+          style="color:${gate.passed ? "var(--good)" : "var(--c3)"}">${gate.passed ? "✓" : "✕"}</span>`;
+      }).join(" ")}</td>
       <td>${esc(heal.decision ?? heal.status)}</td>
       <td>${esc(heal.decided_by ?? "—")}</td>
       <td class="num">${heal.version_after ? `v${esc(heal.version_before)}→v${esc(heal.version_after)}` :
@@ -666,7 +804,7 @@ async function buildDrawer() {
       await api.post("/run-all");
       route();
     } catch (err) {
-      showError(`Demo update failed: ${err.message}`);
+      showError(`Demo update failed: ${err.message}`, err);
     } finally {
       click.target.disabled = false;
     }
@@ -699,12 +837,12 @@ async function route() {
     try {
       await render(match);
     } catch (err) {
-      showError(`Couldn't load this view: ${err.message}`);
+      showError(`Couldn't load this view: ${err.message}`, err);
       mount(view, emptyState("Something went wrong", "The engine may be waking up or unreachable — try again in a moment."));
     } finally {
       view.classList.remove("loading");
     }
-    if (poll) pollTimer = setInterval(() => render(match).catch((err) => showError(`Refresh failed: ${err.message}`)), 4000);
+    if (poll) pollTimer = setInterval(() => render(match).catch((err) => showError(`Refresh failed: ${err.message}`, err)), 4000);
     return;
   }
   location.hash = "#/web";
@@ -717,6 +855,7 @@ document.getElementById("demo-toggle").addEventListener("click", async () => {
   drawer.hidden = !drawer.hidden;
 });
 
+loadMeta();
 route();
 setInterval(pollAlerts, 3000);
 pollAlerts();

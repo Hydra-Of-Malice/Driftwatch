@@ -24,7 +24,7 @@ Open **Demo controls** (bottom-left). Keep `/mirror/nimbusai-pricing` open in a 
 | 0:45 | Break→heal | `#/heal` | The repair happened autonomously in that one run: gate sequence all green, heal history shows the machine-composed prompt, v→v+1, MTTR. *"No human noticed. None needed to."* |
 | 1:05 | The killer | Demo controls → `#/events` | NimbusAI → **v3 — unit meaning silently changes** → Apply & run all. Open the new **Class 4 · Semantic** event. |
 | 1:15 | Show it | event view | Schema ✓ invariants ✓ **semantics ✕**. Same $2.50 — unit now "input + output combined". *"The scraper succeeded. The truth changed. Only a contract catches that."* |
-| 1:30 | The bill | same view | Blast radius: **+$626/mo**, 8 call sites, migration note. Alert toast lands top-right. |
+| 1:30 | The bill | same view | Blast radius: **+$626/mo**, 9 call sites, migration note. Alert toast lands top-right. |
 | 1:45 | It's real | `#/ledger` + `#/sources/...` | Audit ledger (machine decisions end-to-end) + seismograph week view. In the live build: real catches from the soak week. |
 | 1:55 | Close | title card | *"The web changed overnight. Driftwatch noticed, healed its own pipeline, proved the fix, and priced the impact — before your first coffee."* |
 

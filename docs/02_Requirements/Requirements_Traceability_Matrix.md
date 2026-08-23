@@ -74,7 +74,7 @@ Test file abbreviations: `TC` = `test_contracts.py`, `TD` = `test_drift.py`, `TH
 | SEC-006…008 | — | — | **NOT IMPLEMENTED** |
 | MNT-001 | `pyproject.toml` ruff config | CI green | **VALIDATED** |
 | MNT-002 | Protocol seams | `TH`, `TE` use replay client | **VALIDATED** |
-| CMP-001 | `requires-python` | CI 3.11 + local 3.13.11 | **VALIDATED** |
+| CMP-001 | `requires-python` | CI matrix {ubuntu-latest, windows-latest} x {3.10, 3.12} | **VALIDATED** |
 | CMP-002 | `scanner.py` posix paths | `TE` passes on Windows and CI | **VALIDATED** |
 | OBS-001 | `audit_events` | — | **UNVALIDATED** |
 | OBS-002 | `/api/stats` | `TA` (indirect) | **PARTIAL** |

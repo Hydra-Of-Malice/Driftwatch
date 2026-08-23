@@ -88,7 +88,7 @@ There is no secrets manager, no encryption at rest for the `.env` file, and no k
 
 ## 7. Containerisation
 
-**NOT IMPLEMENTED.** No `Dockerfile`, no `docker-compose.yml`, no `.dockerignore`, no Kubernetes manifests exist anywhere in the repository (verified by directory listing at the repository root and under every `apps/*` subtree). "Reproducible by judges" rests entirely on `pip install -r requirements.txt` and a compatible local Python ≥ 3.11 — see [Scope § Constraints](../01_Product/Scope.md).
+**NOT IMPLEMENTED.** No `Dockerfile`, no `docker-compose.yml`, no `.dockerignore`, no Kubernetes manifests exist anywhere in the repository (verified by directory listing at the repository root and under every `apps/*` subtree). "Reproducible by judges" rests entirely on `pip install -r requirements.txt` and a compatible local Python ≥ 3.10 — see [Scope § Constraints](../01_Product/Scope.md).
 
 ## 8. Running it today
 

@@ -30,7 +30,7 @@ Reproduced from [`DEMO.md`](../../DEMO.md), the canonical source for demo timing
 | 0:45 | Break→heal | `#/heal` | Repair happened autonomously in that one run: all four gates green, machine-composed prompt visible, v→v+1, real MTTR. *"No human noticed. None needed to."* |
 | 1:05 | The killer | Demo controls → `#/events` | NimbusAI → **v3 — unit meaning silently changes** → Apply & run all. Open the new **Class 4 · Semantic** event. |
 | 1:15 | Show it | event view | Schema ✓ invariants ✓ **semantics ✕**. Same $2.50, unit now "input + output combined." *"The scraper succeeded. The truth changed. Only a contract catches that."* |
-| 1:30 | The bill | same view | Blast radius: **+$626/mo**, 10 call sites, migration note. Alert toast lands top-right. |
+| 1:30 | The bill | same view | Blast radius: **+$626/mo**, 9 call sites, migration note. Alert toast lands top-right. |
 | 1:45 | It's real | `#/ledger` + `#/sources/...` | Audit ledger (machine decisions end-to-end) + per-source history. |
 | 1:55 | Close | title card | *"The web changed overnight. DriftWatch noticed, healed its own pipeline, proved the fix, and priced the impact — before your first coffee."* |
 
@@ -86,11 +86,11 @@ Class 0 (no change) and Class 2 (benign) were both already present in the pre-ex
       {"gate": "continuity", "passed": true}
     ]
   },
-  "impact": { "cost_delta_monthly": 626.0, "affected": [ "10 call sites across README.md, src/assistant.py, src/billing_guard.py, usage.yaml" ] }
+  "impact": { "cost_delta_monthly": 626.0, "affected": [ "9 call sites across README.md, src/assistant.py, src/billing_guard.py, usage.yaml" ] }
 }
 ```
 
-Every number matches the demo script exactly: **$626/mo**, **10 call sites**, all three prices (`2.50`, `0.15`, `4.00`) numerically unchanged while `unit_context` flips from "input tokens" to "input + output combined." This is the single most important verification in this documentation set, because it is the system's entire thesis in one API response: **the scraper's output is byte-for-byte plausible and the price is unchanged — schema and invariants pass — and only the semantics gate, reading the unit text the scraper was told to capture, catches it.**
+Every number matches the demo script exactly: **$626/mo**, **9 call sites**, all three prices (`2.50`, `0.15`, `4.00`) numerically unchanged while `unit_context` flips from "input tokens" to "input + output combined." This is the single most important verification in this documentation set, because it is the system's entire thesis in one API response: **the scraper's output is byte-for-byte plausible and the price is unchanged — schema and invariants pass — and only the semantics gate, reading the unit text the scraper was told to capture, catches it.**
 
 ### A genuine measurement, and why it matters for GAP-18
 

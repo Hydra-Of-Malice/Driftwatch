@@ -138,6 +138,22 @@ button, a, .chip, .rail a, .gate-dot {
   width: 9px; height: 9px; border-radius: 50%; background: var(--accent);
   box-shadow: 0 0 0 0 rgba(57, 135, 229, 0.6); animation: breathe 3.2s ease-in-out infinite;
 }
+/* ---- provenance badge: REPLAY vs LIVE ------------------------------------
+   Honesty surface. Amber = deterministic replay world; green = a real Bright
+   Data session. Never color alone — the word REPLAY / LIVE carries the claim,
+   and the tooltip carries /api/meta's data_source verbatim. */
+.mode-badge {
+  display: flex; align-items: center; gap: 8px; margin: -10px 12px 16px;
+  padding: 5px 10px; border-radius: 999px; cursor: help;
+  font-family: var(--mono); font-size: 11px; font-weight: 700; letter-spacing: 0.1em;
+  border: 1px solid var(--baseline); background: var(--surface-2); color: var(--muted);
+}
+.mode-badge .mode-dot { width: 8px; height: 8px; border-radius: 50%; background: currentColor; flex: none; }
+.mode-badge.mode-replay { color: var(--c1); border-color: var(--c1); }
+.mode-badge.mode-live { color: var(--good); border-color: var(--good); }
+.mode-badge.mode-live .mode-dot { animation: breathe 3.2s ease-in-out infinite; }
+.mode-badge.mode-unknown { color: var(--c3); border-color: var(--c3); }
+
 .rail-foot { margin-top: auto; display: grid; gap: 10px; }
 .rail-note { color: var(--muted); font-size: 11px; line-height: 1.45; }
 #mode-chip { color: var(--ink-2); font-family: var(--mono); }
@@ -288,6 +304,11 @@ code, .mono { font-family: var(--mono); font-size: 12px; }
 .gate.fail .gate-dot.hero { animation: fail-glow 1.8s ease-in-out infinite; }
 .gate-name { font-weight: 600; }
 .gate-detail { color: var(--muted); font-size: 12px; }
+/* per-gate verdict: the four contract gates, each with its own PASS / FAIL */
+.gate-verdict { font-size: 11px; font-weight: 700; letter-spacing: 0.08em; font-family: var(--mono); }
+.gate.pass .gate-verdict { color: var(--good); }
+.gate.fail .gate-verdict { color: var(--c3); }
+.gate-fields { color: var(--c3); font-size: 11px; font-family: var(--mono); margin-top: 3px; }
 
 /* semantics-drift hero comparison — the single most important 2 seconds in the app */
 .semantic-hero {
@@ -323,6 +344,16 @@ code, .mono { font-family: var(--mono); font-size: 12px; }
 .toast .t-head { font-weight: 700; display: flex; gap: 8px; align-items: center; margin-bottom: 3px; }
 .toast-error { border-left-color: var(--c3); cursor: pointer; }
 .toast-error .t-head { color: var(--c3); }
+/* failure taxonomy on the error toast — a vendor refusal must never read as a
+   scraper failure, so the category is shown verbatim next to the operator hint */
+.toast .t-category {
+  display: inline-block; margin-top: 6px; padding: 2px 8px; border-radius: 999px;
+  font-family: var(--mono); font-size: 10.5px; font-weight: 700; letter-spacing: 0.06em;
+  border: 1px solid var(--ring); background: var(--page); color: var(--ink-2);
+}
+.toast .t-category.vendor { color: var(--c1); border-color: var(--c1); }
+.toast .t-category.scraper { color: var(--c3); border-color: var(--c3); }
+.toast .t-hint { color: var(--ink-2); font-size: 12px; margin-top: 6px; }
 .toast time { color: var(--muted); font-size: 11px; }
 .tooltip {
   position: fixed; z-index: 60; background: var(--surface-2); border: 1px solid var(--ring);

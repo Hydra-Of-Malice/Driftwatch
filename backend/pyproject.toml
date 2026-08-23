@@ -2,7 +2,7 @@
 name = "driftwatch-engine"
 version = "0.1.0"
 description = "Driftwatch engine: self-healing web-data pipelines with semantic contracts, drift taxonomy and verified repair (Bright Data Scraper Studio orchestration)."
-requires-python = ">=3.11"
+requires-python = ">=3.10"
 # Zero mandatory third-party deps beyond what ships in most distros / CI:
 # flask, pydantic>=2, jsonschema, pyyaml, httpx. sqlite3/unittest are stdlib.
 dependencies = [
@@ -15,7 +15,7 @@ dependencies = [
 
 [tool.ruff]
 line-length = 110
-target-version = "py311"
+target-version = "py310"
 
 [tool.ruff.lint]
 select = ["E", "F", "W", "I", "UP", "B", "SIM"]

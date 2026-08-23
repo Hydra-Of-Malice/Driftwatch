@@ -6,7 +6,7 @@ projections of them.
 
 from __future__ import annotations
 
-from enum import IntEnum, StrEnum
+from enum import Enum, IntEnum
 
 from pydantic import BaseModel, Field
 
@@ -39,7 +39,7 @@ CLASS_LABELS = {
 }
 
 
-class RunState(StrEnum):
+class RunState(str, Enum):
     """Explicit, persisted pipeline states. Every transition writes an audit event."""
 
     SCHEDULED = "scheduled"

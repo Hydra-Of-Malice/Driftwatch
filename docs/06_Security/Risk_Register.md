@@ -47,10 +47,11 @@ R-03 is scored Critical on **credibility** rather than system impact. A reviewer
 | R-17 | Dead error taxonomy contradicts its own docstring | High | Low | **MEDIUM** | Raise them or delete them | **OPEN** |
 | R-18 | Unbounded data growth; no retention policy | Med | Low | **MEDIUM** | Archival design | **OPEN** |
 | R-19 | Supply chain — no lockfile, no scanning | Low | High | **MEDIUM** | Lockfile + `pip-audit` | **OPEN** |
-| R-20 | `LiveClient` hardcodes a POSIX `PATH`, so live mode cannot work on Windows — the maintainer's own platform | Med | Med | **MEDIUM** | Inherit `PATH`, or branch per platform | **OPEN** |
+| R-20 | `LiveClient` hardcoded a POSIX `PATH`, so live mode could not work on Windows — the maintainer's own platform | Med | Med | **MEDIUM** | Inherit the real environment; resolve the CLI to an absolute path | **CLOSED 2026-08-23** |
 
-R-20 is worth flagging to anyone attempting the live path: even after `bdata login` succeeds, `LiveClient` passes `PATH=/usr/local/bin:/usr/bin:/bin` to the subprocess, which will not locate `bdata.cmd` on Windows.
-Evidence: `brightdata/live.py :: _cli`
+R-20 was open until 2026-08-23 and is now genuinely fixed, in two parts: `_env` copies the real environment and injects only the API key on top (`brightdata/live.py:99-103`), and `resolve_cli` returns the `shutil.which`-resolved absolute path rather than the bare name, which is what Windows requires to launch the `brightdata.cmd` npm shim (`brightdata/live.py:63-74`). Both are pinned by regression tests (`backend/tests/test_live_client.py:142`, and the UTF-8 decode regression alongside it). Live CLI invocation has since been exercised on Windows 11 against @brightdata/cli 0.3.5 — `discover` returned real ranked results and `scraper create` returned a real `collector_id`. The blockers that remain on the live path are vendor-side (HTTP 403 `Automation not allowed`, HTTP 503 self-healing disabled), not platform-side.
+
+The fix carries a deliberate residual: the child now inherits every environment variable the server process holds, including `DW_API_TOKEN`, `ANTHROPIC_API_KEY` and `DW_SLACK_WEBHOOK`. That exposure is accepted, tracked as **T-17** in the [Threat Model](Threat_Model.md), and explained in [Security Architecture § C2](Security_Architecture.md#c2--subprocess-invocation-implemented-full-environment-inheritance-is-an-accepted-trade-off); the real mitigation is process/container isolation for live mode, not an in-process env allowlist.
 
 ---
 
@@ -71,6 +72,8 @@ R-21 deserves a strategy note. The weakest posture is to let a judge discover th
 ## Risk distribution
 
 As originally assessed: **Critical 4** (R-01, R-02, R-03, R-21), **High 7**, **Medium 12**, **Low 2**.
+
+**As of 2026-08-23:** R-20 closed (environment inheritance + absolute CLI path; residual exposure accepted as T-17).
 
 **As of 2026-08-22:** R-02 mitigated (opt-in, not forced), R-03 closed. Remaining open Critical: **R-01** (live path unproven — blocked on vendor account access, not code) and **R-21** (the judge-facing framing of the same gap, now strengthened by the real spike transcript in `scripts/spike_out/` — see [AI Architecture § Live-path validation status](../09_AI_ML/AI_Architecture.md#live-path-validation-status)).
 

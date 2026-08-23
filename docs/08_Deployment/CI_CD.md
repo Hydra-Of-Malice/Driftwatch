@@ -6,14 +6,14 @@
 
 ## 1. The real pipeline
 
-One workflow, one job, no deployment step.
+One workflow, one matrixed job (4 cells), no deployment step.
 Evidence: `.github/workflows/ci.yml`
 
 ```mermaid
 flowchart LR
-  T[push or pull_request<br/>any branch] --> CO[actions/checkout@v4]
-  CO --> PY[actions/setup-python@v5<br/>python 3.11]
-  PY --> DEPS[pip install flask, pydantic>=2,<br/>jsonschema, pyyaml, httpx, ruff]
+  T[push or pull_request<br/>any branch] --> CO[actions/checkout@v4<br/>matrix os: ubuntu-latest, windows-latest]
+  CO --> PY[actions/setup-python@v5<br/>matrix: 3.10, 3.12]
+  PY --> DEPS[pip install -r requirements.txt<br/>+ ruff]
   DEPS --> LINT[ruff check backend]
   LINT --> TEST[python -m unittest discover -s tests -v]
 ```
@@ -21,8 +21,8 @@ flowchart LR
 | Step | What it does | What it does NOT do |
 |---|---|---|
 | `actions/checkout@v4` | Clones the repo | — |
-| `actions/setup-python@v5` | Installs Python 3.11 only | No matrix; 3.13 is exercised locally (both `cpython-311` and `cpython-313` `.pyc` caches exist in the repo) but never in CI |
-| Install dependencies | `pip install flask "pydantic>=2" jsonschema pyyaml httpx ruff` | **Does not run `pip install -r requirements.txt`** — the package list is duplicated inline in the workflow file. See the finding below |
+| `actions/setup-python@v5` | Installs Python 3.10 and 3.12, on both `ubuntu-latest` and `windows-latest` (4 cells, `fail-fast: false`) | Does not test 3.11 or 3.13 — the matrix pins the supported floor and a recent version, not every release in between |
+| Install dependencies | `pip install -r requirements.txt`, then `pip install ruff` | Does not cache `~/.cache/pip`; `ruff` is dev-only so it stays out of `requirements.txt` |
 | Lint | `ruff check backend` | Does not lint `frontend` (there is no linter configured for the vanilla-JS frontend at all) |
 | Tests | `python -m unittest discover -s tests -v` from `backend`, runs all 23 tests | No coverage measurement, no coverage gate, no JUnit/XML report artifact |
 
@@ -41,7 +41,7 @@ Stated plainly, because a reviewer will check:
 - **No dependency caching.** Every run does a cold `pip install`; harmless at this scale, but adds avoidable minutes as the suite grows.
 - **No release process.** No tags, no changelog generation, no version stamping anywhere in the codebase.
 
-## 3. Finding — the dependency list is duplicated, not sourced from `requirements.txt`
+## 3. RESOLVED — the dependency list is no longer duplicated
 
 `requirements.txt` (repo root) declares:
 
@@ -51,11 +51,10 @@ pydantic>=2
 jsonschema>=4
 pyyaml>=6
 httpx>=0.27
+gunicorn>=22
 ```
 
-The workflow's `pip install` line hand-lists the same five packages (plus `ruff`, which is CI/dev-only and correctly absent from `requirements.txt`) rather than running `pip install -r requirements.txt`. Today the two lists agree. **They have no mechanism keeping them in sync** — a developer who bumps a floor in `requirements.txt` (e.g. to require `flask>=3.1` for a bug fix) will not see that reflected in CI unless they remember to edit the workflow file too. This is a real, low-severity engineering inconsistency: one canonical source of truth (`requirements.txt`) exists, and CI does not use it.
-
-**RECOMMENDED:** `pip install -r requirements.txt ruff`. ~5 minutes.
+The workflow used to hand-list the same packages inline, with no mechanism keeping the two in sync — a floor bumped in `requirements.txt` would not reach CI unless someone remembered to edit the workflow too. **Fixed:** the install step now runs `pip install -r requirements.txt`, with `ruff` installed separately because it is CI/dev-only and correctly absent from `requirements.txt`. `requirements.txt` is the single source of truth.
 
 ## 4. RECOMMENDED — production-grade pipeline
 
@@ -63,15 +62,13 @@ None of this exists; it is a recommendation, ranked by value against effort.
 
 | # | Addition | Effort | Value |
 |---|---|---|---|
-| 1 | `pip install -r requirements.txt` instead of the duplicated list | 5 min | Removes a drift source |
-| 2 | Cache `~/.cache/pip` keyed on `requirements.txt` hash | 15 min | Faster CI as the suite grows |
-| 3 | Matrix Python 3.11 **and** 3.13, matching what is actually exercised locally | 15 min | Catches version-specific regressions before they ship |
-| 4 | `pip-audit` (or Dependabot security alerts as a required check) | 30 min | Every dependency has an unpinned floor; a known-CVE transitive update currently ships silently |
-| 5 | Coverage measurement (`coverage run -m unittest discover`) reported in the job summary | 30 min | Makes the "23 tests pass" claim quantifiable as a percentage, not just a count |
-| 6 | A frontend check — even a syntax/lint pass with a zero-config tool — once `frontend` has any tests to run | 1–2 h | Closes the biggest testing gap in the system ([Gap Report](../11_Assessment/Engineering_Gap_Report.md)) |
-| 7 | Require the `engine` check on branch protection for `main` (a repository setting, not a workflow change) | 5 min | Makes CI advisory-only vs. actually gating |
-| 8 | A second workflow: build + push a container image on tag (after [Deployment Architecture § Containerise](Deployment_Architecture.md#9-recommended--production-deployment-shape) exists) | 2–3 h | First real CD step |
-| 9 | Staged CD: deploy to a staging target, smoke-test against `/api/stats`, promote on green | Half day+ | Out of scope until an actual staging environment exists |
+| 1 | Cache `~/.cache/pip` keyed on `requirements.txt` hash | 15 min | Faster CI as the suite grows |
+| 2 | `pip-audit` (or Dependabot security alerts as a required check) | 30 min | Every dependency has an unpinned floor; a known-CVE transitive update currently ships silently |
+| 3 | Coverage measurement (`coverage run -m unittest discover`) reported in the job summary | 30 min | Makes the "23 tests pass" claim quantifiable as a percentage, not just a count |
+| 4 | A frontend check — even a syntax/lint pass with a zero-config tool — once `frontend` has any tests to run | 1–2 h | Closes the biggest testing gap in the system ([Gap Report](../11_Assessment/Engineering_Gap_Report.md)) |
+| 5 | Require the `engine` check on branch protection for `main` (a repository setting, not a workflow change) | 5 min | Makes CI advisory-only vs. actually gating |
+| 6 | A second workflow: build + push a container image on tag (after [Deployment Architecture § Containerise](Deployment_Architecture.md#9-recommended--production-deployment-shape) exists) | 2–3 h | First real CD step |
+| 7 | Staged CD: deploy to a staging target, smoke-test against `/api/stats`, promote on green | Half day+ | Out of scope until an actual staging environment exists |
 
 Items 1–5 are same-day, no-new-infrastructure improvements. Items 6–9 depend on prerequisites documented elsewhere ([Test Strategy](../07_Testing/Test_Strategy.md), [Deployment Architecture](Deployment_Architecture.md)) and are correctly out of scope for this build's 7-day window.
 
