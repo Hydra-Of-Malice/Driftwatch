@@ -10,7 +10,7 @@
 Specifies functional and non-functional requirements for DriftWatch. Requirements are reverse-engineered from the implementation and labelled with verification status; this is a specification of **what the system does**, with gaps marked rather than hidden.
 
 ### 1.2 Scope
-Covers the engine (`apps/engine`), web client (`apps/web`), contracts, fixtures, and mirror. Excludes Bright Data Scraper Studio internals and the Anthropic API.
+Covers the engine (`backend`), web client (`frontend`), contracts, fixtures, and mirror. Excludes Bright Data Scraper Studio internals and the Anthropic API.
 
 ### 1.3 Definitions
 
@@ -114,7 +114,7 @@ IDs are stable. Every requirement is atomic and testable. Status uses the labels
 | **FR-029** | The system shall expose the API documented in [API Documentation](../05_API/API_Documentation.md). | **IMPLEMENTED** | `api/app.py` — 19 routes |
 | <a id="fr-030"></a>**FR-030** | The demo-state endpoint shall reject variants outside the allowlist with HTTP 400. | **VALIDATED** | `test_api.py::test_invalid_variant_rejected` |
 | **FR-031** | The system shall serve SPA, API, and mirror from one origin. | **VALIDATED** | Verified: `/`, `/assets/*`, `/mirror/*`, `/api/*` all 200 |
-| **FR-032** | The SPA shall present Living Web, Sources, Events, Heal Center, and Ledger views. | **IMPLEMENTED — UNVALIDATED** | `apps/web/assets/app.js` — no frontend tests |
+| **FR-032** | The SPA shall present Living Web, Sources, Events, Heal Center, and Ledger views. | **IMPLEMENTED — UNVALIDATED** | `frontend/assets/app.js` — no frontend tests |
 
 ---
 

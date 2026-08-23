@@ -4,7 +4,7 @@ Run this in the session on `D:\scrap_vulcan` that has browser control. Purpose: 
 
 ## Setup
 
-The server is likely already running at `http://localhost:8000` (PID may vary — check with a quick request first). If it's not responding, start it fresh: `rm -f driftwatch.db driftwatch.db-* && python3 apps/engine/serve.py`.
+The server is likely already running at `http://localhost:8000` (PID may vary — check with a quick request first). If it's not responding, start it fresh: `rm -f driftwatch.db driftwatch.db-* && python3 backend/serve.py`.
 
 Load the browser tools you need in one `ToolSearch` call: `select:mcp__claude-in-chrome__tabs_context_mcp,mcp__claude-in-chrome__navigate,mcp__claude-in-chrome__computer,mcp__claude-in-chrome__tabs_create_mcp,mcp__claude-in-chrome__tabs_close_mcp,mcp__claude-in-chrome__read_console_messages,mcp__claude-in-chrome__find`
 
@@ -12,7 +12,7 @@ Open a **fresh new tab** (not a reused one) and navigate to `http://localhost:80
 
 ## What changed, for context
 
-`apps/web/assets/{styles.css,app.js,viz.js}` and `apps/web/index.html` were rewritten to add: three themes (light/dark/spider) switchable via a small pill control at the bottom of the left rail (sun/moon/spider icons), animated count-up stat tiles, empty states, severity-colored event cards, a hero visual treatment for the Class-4 semantic-drift moment on the event detail page, hand-drawn nav icons, and spider-theme-specific flourishes (web-line background texture, themed favicon, a "spider-sense" animation variant). None of this touched backend logic, data, or decisions — presentation only.
+`frontend/assets/{styles.css,app.js,viz.js}` and `frontend/index.html` were rewritten to add: three themes (light/dark/spider) switchable via a small pill control at the bottom of the left rail (sun/moon/spider icons), animated count-up stat tiles, empty states, severity-colored event cards, a hero visual treatment for the Class-4 semantic-drift moment on the event detail page, hand-drawn nav icons, and spider-theme-specific flourishes (web-line background texture, themed favicon, a "spider-sense" animation variant). None of this touched backend logic, data, or decisions — presentation only.
 
 ## What to check
 

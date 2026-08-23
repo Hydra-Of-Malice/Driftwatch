@@ -10,7 +10,7 @@
 
 ```mermaid
 flowchart LR
-  DEV[Operator] -->|python3 apps/engine/serve.py| PROC[Flask process<br/>single OS process]
+  DEV[Operator] -->|python3 backend/serve.py| PROC[Flask process<br/>single OS process]
   subgraph PROC_detail[Inside the one process]
     direction TB
     MAIN[Main thread<br/>Flask dev server<br/>app.run host=127.0.0.1 default]
@@ -18,12 +18,12 @@ flowchart LR
     MAIN -.shares in-process call.-> SCHED
   end
   PROC --> DB[(driftwatch.db<br/>SQLite, WAL, local file)]
-  PROC --> STATIC[apps/web/* served from disk]
+  PROC --> STATIC[frontend/* served from disk]
   PROC --> MIRROR[mirror/* served from disk]
 ```
 
-One `python3 apps/engine/serve.py` invocation produces one OS process containing two logical workers that share memory and the SQLite connection pool: the Flask HTTP server on the main thread, and the scheduler on a daemon thread. There is no second process, no message broker, and no network hop between them.
-Evidence: `apps/engine/serve.py`, `api/app.py :: serve()`, `scheduler.py :: start()`
+One `python3 backend/serve.py` invocation produces one OS process containing two logical workers that share memory and the SQLite connection pool: the Flask HTTP server on the main thread, and the scheduler on a daemon thread. There is no second process, no message broker, and no network hop between them.
+Evidence: `backend/serve.py`, `api/app.py :: serve()`, `scheduler.py :: start()`
 
 ## 2. Startup sequence
 
@@ -94,7 +94,7 @@ There is no secrets manager, no encryption at rest for the `.env` file, and no k
 
 ```bash
 pip install -r requirements.txt
-make demo    # rm -f driftwatch.db* ; python3 apps/engine/serve.py
+make demo    # rm -f driftwatch.db* ; python3 backend/serve.py
 # http://localhost:8000
 ```
 

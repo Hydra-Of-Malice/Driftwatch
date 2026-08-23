@@ -5,7 +5,7 @@
 ---
 
 **Base URL:** `http://localhost:8000` · **Content type:** `application/json`
-**Source:** `apps/engine/driftwatch_engine/api/app.py` · **Routes:** 19
+**Source:** `backend/driftwatch_engine/api/app.py` · **Routes:** 19
 
 > ## ⚠ Authentication: OPT-IN, OFF BY DEFAULT (as of 2026-08-22)
 > **No endpoint requires authentication or authorisation unless `DW_API_TOKEN` is set.** In the default configuration this still includes endpoints that mutate production state (`POST /api/review/<id>` approves an AI-generated template; `POST /api/onboard` spends vendor credits; `POST /api/run-all` triggers every source). The server binds `127.0.0.1` by default (was `0.0.0.0`).
@@ -24,7 +24,7 @@
 Serves the SPA. → `200 text/html`.
 
 ### `GET /assets/<path:filename>`
-Serves `apps/web/assets/*`. → `200` · `404`.
+Serves `frontend/assets/*`. → `200` · `404`.
 **Note:** `send_from_directory` provides path-traversal protection.
 
 ### `GET /mirror/<source_id>`

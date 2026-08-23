@@ -185,7 +185,7 @@ Evidence: `scheduler.py`
 
 **Status:** Accepted (observed)
 **Decision:** No bundler, no framework. `app.js` (581) + `viz.js` (257) + `styles.css` (213), hash router.
-Evidence: `apps/web/`
+Evidence: `frontend/`
 
 **Rationale — *inferred*.** Judges can clone and run with no `npm install`; nothing to break in a demo.
 

@@ -99,7 +99,7 @@ Gaps found by comparing documented intent, implemented code, and passing tests. 
 | GAP-20 | No `.gitattributes`; CRLF churn across platforms | 15 min |
 
 > **GAP-18 — resolved 2026-08-22, kept here as the record of what was wrong and why.** `/api/stats` used to return `heal_mttr_seconds` as the mean over *all* `heal_events.mttr_seconds`, including `seed.py`'s hardcoded `42.3` rows marked `"seeded": True` — a marker the API silently stripped, so the UI presented a fabricated constant in the same visual position as genuinely measured values. This was the single most misleading element in the product surface. **Fix:** `heal_events` gained a real `seeded` column; `/api/stats` now excludes `seeded = 1` from the mean and reports `heal_mttr_measured_count` alongside it; the UI shows "no measured heal yet" instead of a number until a real heal runs, and the Heal History table tags seeded rows explicitly.
-> Evidence: `db.py :: SCHEMA` (`heal_events.seeded`), `seed.py` (`"seeded": 1`), `api/app.py :: stats`, `apps/web/assets/app.js`
+> Evidence: `db.py :: SCHEMA` (`heal_events.seeded`), `seed.py` (`"seeded": 1`), `api/app.py :: stats`, `frontend/assets/app.js`
 
 ---
 

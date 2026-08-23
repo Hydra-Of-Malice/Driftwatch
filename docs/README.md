@@ -107,8 +107,8 @@ Every substantive claim carries one of these labels. They are never mixed.
 Evidence is cited as a repository path, optionally with a symbol or line:
 
 ```
-Evidence: apps/engine/driftwatch_engine/contracts/engine.py :: evaluate()
-Evidence: apps/engine/tests/test_contracts.py::test_semantic_drift_fails_only_the_semantics_gate
+Evidence: backend/driftwatch_engine/contracts/engine.py :: evaluate()
+Evidence: backend/tests/test_contracts.py::test_semantic_drift_fails_only_the_semantics_gate
 ```
 
 ### Two standing caveats

@@ -88,7 +88,7 @@ The project has not conducted primary research, and citing third-party market es
 **RECOMMENDED** — the credible way to establish magnitude: run DriftWatch against 20–50 real public pricing and documentation pages for 30 days and report observed drift events by class. This is a measurement the architecture already supports (the audit ledger records every classification); it has simply not been run.
 
 What *is* demonstrable without market data is that the failure mode is real and undetectable by conventional means — which the semantic gate test proves directly.
-Evidence: `apps/engine/tests/test_contracts.py::test_semantic_drift_fails_only_the_semantics_gate`
+Evidence: `backend/tests/test_contracts.py::test_semantic_drift_fails_only_the_semantics_gate`
 
 ## 7. Requirements this generates
 

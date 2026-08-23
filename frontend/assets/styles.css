@@ -321,6 +321,8 @@ code, .mono { font-family: var(--mono); font-size: 12px; }
   animation: slide-in var(--med) var(--ease); box-shadow: var(--shadow-md);
 }
 .toast .t-head { font-weight: 700; display: flex; gap: 8px; align-items: center; margin-bottom: 3px; }
+.toast-error { border-left-color: var(--c3); cursor: pointer; }
+.toast-error .t-head { color: var(--c3); }
 .toast time { color: var(--muted); font-size: 11px; }
 .tooltip {
   position: fixed; z-index: 60; background: var(--surface-2); border: 1px solid var(--ring);

@@ -2,12 +2,21 @@
 
 import { CLASSES, badge, confidenceDial, hideTooltip, legend, livingWeb, seismograph } from "/assets/viz.js";
 
+async function checkResponse(r) {
+  if (!r.ok) {
+    let detail = "";
+    try { detail = (await r.json()).error ?? ""; } catch { /* non-JSON error body */ }
+    throw new Error(detail || `request failed (${r.status})`);
+  }
+  return r.json();
+}
+
 const api = {
-  get: (path) => fetch(`/api${path}`).then((r) => r.json()),
+  get: (path) => fetch(`/api${path}`).then(checkResponse),
   post: (path, body) => fetch(`/api${path}`, {
     method: "POST", headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body ?? {}),
-  }).then((r) => r.json()),
+  }).then(checkResponse),
 };
 
 const view = document.getElementById("view");
@@ -147,6 +156,18 @@ function showToast(alert) {
     <div>${esc(alert.payload?.text ?? "")}</div>
     <time>${esc(new Date(alert.delivered_at).toLocaleTimeString())} · in-app${
       alert.channel === "slack" ? " + slack" : ""}</time>`));
+  node.addEventListener("click", () => node.remove());
+  box.append(node);
+  setTimeout(() => node.remove(), 9500);
+}
+
+function showError(message) {
+  const box = document.getElementById("toasts");
+  const node = document.createElement("div");
+  node.className = "toast toast-error";
+  node.append(fromHtml(html`
+    <div class="t-head">Driftwatch error</div>
+    <div>${esc(message)}</div>`));
   node.addEventListener("click", () => node.remove());
   box.append(node);
   setTimeout(() => node.remove(), 9500);
@@ -537,16 +558,26 @@ async function renderHeal() {
     approve.textContent = "Approve repair";
     approve.addEventListener("click", async () => {
       approve.disabled = true;
-      await api.post(`/review/${heal.id}`, { approve: true });
-      renderHeal();
+      try {
+        await api.post(`/review/${heal.id}`, { approve: true });
+        renderHeal();
+      } catch (err) {
+        showError(`Approve failed: ${err.message}`);
+        approve.disabled = false;
+      }
     });
     const reject = document.createElement("button");
     reject.className = "btn btn-danger";
     reject.textContent = "Reject";
     reject.addEventListener("click", async () => {
       reject.disabled = true;
-      await api.post(`/review/${heal.id}`, { approve: false });
-      renderHeal();
+      try {
+        await api.post(`/review/${heal.id}`, { approve: false });
+        renderHeal();
+      } catch (err) {
+        showError(`Reject failed: ${err.message}`);
+        reject.disabled = false;
+      }
     });
     actions.append(approve, reject);
     card.append(actions);
@@ -628,12 +659,17 @@ async function buildDrawer() {
     </div>`));
   drawer.querySelector("#demo-apply").addEventListener("click", async (click) => {
     click.target.disabled = true;
-    for (const select of drawer.querySelectorAll("select[data-source]")) {
-      await api.post("/demo/state", { source_id: select.dataset.source, variant: select.value });
+    try {
+      for (const select of drawer.querySelectorAll("select[data-source]")) {
+        await api.post("/demo/state", { source_id: select.dataset.source, variant: select.value });
+      }
+      await api.post("/run-all");
+      route();
+    } catch (err) {
+      showError(`Demo update failed: ${err.message}`);
+    } finally {
+      click.target.disabled = false;
     }
-    await api.post("/run-all");
-    click.target.disabled = false;
-    route();
   });
   drawer.querySelector("#demo-close").addEventListener("click", () => { drawer.hidden = true; });
 }
@@ -660,9 +696,15 @@ async function route() {
     document.querySelectorAll(".rail a[data-nav]").forEach((a) =>
       a.classList.toggle("active", a.dataset.nav === nav));
     view.classList.add("loading");
-    await render(match);
-    view.classList.remove("loading");
-    if (poll) pollTimer = setInterval(() => render(match), 4000);
+    try {
+      await render(match);
+    } catch (err) {
+      showError(`Couldn't load this view: ${err.message}`);
+      mount(view, emptyState("Something went wrong", "The engine may be waking up or unreachable — try again in a moment."));
+    } finally {
+      view.classList.remove("loading");
+    }
+    if (poll) pollTimer = setInterval(() => render(match).catch((err) => showError(`Refresh failed: ${err.message}`)), 4000);
     return;
   }
   location.hash = "#/web";

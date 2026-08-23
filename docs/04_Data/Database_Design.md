@@ -5,7 +5,7 @@
 ---
 
 **Engine:** SQLite, WAL journal mode, `foreign_keys=ON`, one connection per thread.
-**Schema source:** `apps/engine/driftwatch_engine/db.py :: SCHEMA` (single `executescript`).
+**Schema source:** `backend/driftwatch_engine/db.py :: SCHEMA` (single `executescript`).
 **Tables:** 10.
 
 ---

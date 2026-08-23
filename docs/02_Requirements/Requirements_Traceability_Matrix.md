@@ -6,7 +6,7 @@
 
 Traces every requirement through **design → implementation → test → evidence**. A row with no test is a traceability gap and is marked as such.
 
-Test file abbreviations: `TC` = `test_contracts.py`, `TD` = `test_drift.py`, `TH` = `test_healing.py`, `TE` = `test_e2e_pipeline.py`, `TA` = `test_api.py`. All under `apps/engine/tests/`.
+Test file abbreviations: `TC` = `test_contracts.py`, `TD` = `test_drift.py`, `TH` = `test_healing.py`, `TE` = `test_e2e_pipeline.py`, `TA` = `test_api.py`. All under `backend/tests/`.
 
 ---
 
@@ -49,7 +49,7 @@ Test file abbreviations: `TC` = `test_contracts.py`, `TD` = `test_drift.py`, `TH
 | FR-029 | API surface | `api/app.py` | `TA` ×3 (3 of 19 routes) | **PARTIAL** |
 | FR-030 | Variant allowlist | `api/app.py :: demo_state` | `TA::test_invalid_variant_rejected` | **VALIDATED** |
 | FR-031 | Single origin | `api/app.py` routes | Manual verification this review | **VALIDATED** |
-| FR-032 | SPA views | `apps/web/assets/app.js` | — | **UNVALIDATED** |
+| FR-032 | SPA views | `frontend/assets/app.js` | — | **UNVALIDATED** |
 
 ## Non-functional requirements
 
@@ -120,7 +120,7 @@ Modules with no governing requirement:
 |---|---|
 | `errors.py` (7 exception classes) | `BudgetExceeded`, `ContractViolation`, `HealRejected`, `FetchError` are **defined but never raised anywhere**. Dead taxonomy |
 | `seed.py` (261 lines) | Demo data generation. Legitimately requirement-free, but it produces the `42.3s` MTTR figure the UI displays as if measured |
-| `apps/web/assets/viz.js` (257 lines) | Visualisation only |
+| `frontend/assets/viz.js` (257 lines) | Visualisation only |
 
 > **Finding.** `errors.py` defines a careful error taxonomy that the pipeline does not use — it raises `ValueError` for unknown sources and lets `BrightDataError` through from the client. This is a real inconsistency between documented design intent and implementation. See [Gap Report G-07](../11_Assessment/Engineering_Gap_Report.md).
 

@@ -27,7 +27,7 @@ client with zero changes above the seam.
 npm i -g @brightdata/cli
 brightdata login                       # or: export BRIGHTDATA_API_KEY=...
 export DW_MODE=live
-python3 apps/engine/serve.py
+python3 backend/serve.py
 ```
 
 Onboard a real page (NL description → Studio AI Flow → collector):

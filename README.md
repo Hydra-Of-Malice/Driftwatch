@@ -55,7 +55,7 @@ Requires Python 3.11+ with `flask`, `pydantic>=2`, `jsonschema`, `pyyaml`, `http
 (`pip install -r requirements.txt` if needed). No database server, no queue, no build step.
 
 ```bash
-python3 apps/engine/serve.py
+python3 backend/serve.py
 # → http://localhost:8000  (UI, API, and the demo mirror site on one origin)
 ```
 
@@ -68,7 +68,7 @@ verify, approve, and price the change.
 Run the test suite (the E2E test walks all five drift classes through the full state machine):
 
 ```bash
-make test     # or: cd apps/engine && python3 -m unittest discover -s tests
+make test     # or: cd backend && python3 -m unittest discover -s tests
 ```
 
 ## Going live against real Bright Data
@@ -77,7 +77,7 @@ make test     # or: cd apps/engine && python3 -m unittest discover -s tests
 npm i -g @brightdata/cli && brightdata login       # Scraper Studio CLI
 export BRIGHTDATA_API_KEY=...                      # from brightdata.com/cp/setting/users
 export DW_MODE=live
-python3 apps/engine/serve.py
+python3 backend/serve.py
 ```
 
 Same engine, same states, same UI — the client seam (`driftwatch_engine/brightdata/`) swaps the
@@ -87,9 +87,9 @@ recorded envelopes for the real CLI (`scraper create / run / heal / approve`, `d
 ## Architecture (two deployables, one database, zero microservices)
 
 ```
-apps/web       zero-build SPA (vanilla ES modules + SVG) — the Living Web, seismographs,
+frontend       zero-build SPA (vanilla ES modules + SVG) — the Living Web, seismographs,
                drift events, Heal Center, audit ledger
-apps/engine    one Flask service: REST API + scheduler + the pipeline state machine
+backend    one Flask service: REST API + scheduler + the pipeline state machine
   driftwatch_engine/
     contracts/   the Semantic Contract Engine (4 gates → confidence verdict)
     drift/       entity-resolved differ + five-class classifier

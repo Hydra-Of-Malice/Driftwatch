@@ -69,7 +69,7 @@ Backend proportions are healthy. The frontend layer is empty.
 | `scheduler.py` | 49 | **None** | Zero coverage |
 | `llm/provider.py` | 89 | **Partial** | Heuristic only; Anthropic branch untested |
 | `brightdata/live.py` | 72 | **None** | Zero coverage |
-| `apps/web/*.js` | 838 | **None** | Zero coverage |
+| `frontend/assets/*.js` | 838 | **None** | Zero coverage |
 
 **No coverage tooling is configured.** The above is derived by reading tests against modules, not from `coverage.py`. **RECOMMENDED:** add `coverage run -m unittest` to CI so this table becomes a measurement rather than an assessment.
 

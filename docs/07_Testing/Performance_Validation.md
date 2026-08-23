@@ -85,7 +85,7 @@ pip install -r requirements.txt
 python - <<'PY'
 import sys, time, tempfile, json
 from pathlib import Path
-sys.path.insert(0, str(Path("apps/engine").resolve()))
+sys.path.insert(0, str(Path("backend").resolve()))
 from driftwatch_engine import db, seed
 from driftwatch_engine.brightdata.replay import ReplayClient, WorldState
 from driftwatch_engine.config import Settings

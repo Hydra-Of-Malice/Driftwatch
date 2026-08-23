@@ -75,7 +75,7 @@ flowchart LR
       PR[Provider]
     end
   end
-  W[apps/web<br/>static]
+  W[frontend<br/>static]
   M[mirror/<br/>static]
   FX[fixtures/<br/>contracts + snapshots]
   D[(driftwatch.db)]
@@ -245,7 +245,7 @@ Consequence and mitigation: [Reliability](../10_Operations/Reliability_and_Failu
 
 ```mermaid
 flowchart LR
-  DEV[Developer] -->|python apps/engine/serve.py| PROC[Flask dev server<br/>127.0.0.1:8000 default]
+  DEV[Developer] -->|python backend/serve.py| PROC[Flask dev server<br/>127.0.0.1:8000 default]
   PROC --> SQLITE[(driftwatch.db<br/>local file)]
   PROC --> STATIC[Static files from repo]
 ```

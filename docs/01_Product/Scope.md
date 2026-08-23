@@ -22,7 +22,7 @@
 | In-app alerts; optional Slack | **IMPL / UNVALIDATED** | `alerts.py` |
 | Append-only audit ledger | **IMPLEMENTED** | `db.py :: audit` |
 | In-process scheduler | **IMPLEMENTED** | `scheduler.py` |
-| 19-route JSON API + zero-build SPA | **IMPLEMENTED** | `api/app.py`, `apps/web/` |
+| 19-route JSON API + zero-build SPA | **IMPLEMENTED** | `api/app.py`, `frontend/` |
 | Replay client with controlled mirror site | **VALIDATED** | `brightdata/replay.py`, `mirror/` |
 | Live client wrapping the official CLI | **UNVALIDATED** | `brightdata/live.py` |
 

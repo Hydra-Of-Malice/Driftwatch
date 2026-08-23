@@ -101,7 +101,7 @@ Not part of the automated suite; executed against a live server and recorded her
 
 | ID | Scenario | Method | Result |
 |---|---|---|---|
-| MV-01 | Server boots from a clean DB | `python apps/engine/serve.py` | ✅ Up in ~1 s |
+| MV-01 | Server boots from a clean DB | `python backend/serve.py` | ✅ Up in ~1 s |
 | MV-02 | All five classes over HTTP | `POST /api/demo/state` + `POST /api/run/<id>` per variant | ✅ Classes 0,1,4,3,5 with expected states |
 | MV-03 | Class 1 heals autonomously | `v2_redesign` | ✅ `healed: true`, published |
 | MV-04 | Class 3 prices correctly | `v4_material` | ✅ `cost_delta_monthly: 412.0` |
@@ -109,7 +109,7 @@ Not part of the automated suite; executed against a live server and recorded her
 | MV-06 | SPA and assets serve | `GET /`, `/assets/{app.js,styles.css,viz.js}` | ✅ 200 |
 | MV-07 | Mirror serves both sources | `GET /mirror/<id>` | ✅ 200 |
 | MV-08 | `v5_gone` returns 404 by design | `GET /mirror/nimbusai-pricing` at `v5_gone` | ✅ 404 |
-| MV-09 | Lint clean | `ruff check apps/engine` | ✅ All checks passed |
+| MV-09 | Lint clean | `ruff check backend` | ✅ All checks passed |
 | MV-10 | CI green | GitHub Actions run | ✅ success, 20 s |
 
 ---

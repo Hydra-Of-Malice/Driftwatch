@@ -7,7 +7,7 @@ engineering rigor.
 ## Setup (once)
 
 ```bash
-rm -f driftwatch.db && python3 apps/engine/serve.py     # fresh seeded world
+rm -f driftwatch.db && python3 backend/serve.py     # fresh seeded world
 # open http://localhost:8000  → The Living Web, calm, with 12 days of history
 ```
 

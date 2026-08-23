@@ -234,6 +234,8 @@ def create_app(settings: Settings, world: WorldState | None = None) -> Flask:
         source_id = body.get("id") or (name or "source").lower().replace(" ", "-")
         if not (url and description and name):
             return jsonify({"error": "url, description and name are required"}), 400
+        if db.query_one("SELECT id FROM sources WHERE id = ?", [source_id]) is not None:
+            return jsonify({"error": "a source with this id already exists", "source_id": source_id}), 409
         contract_path = (deps.contracts_dir or FIXTURES_DIR / "contracts") / f"{source_id}.yaml"
         if not contract_path.exists():
             return jsonify({

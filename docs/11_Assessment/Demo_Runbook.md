@@ -11,7 +11,7 @@
 ```bash
 pip install -r requirements.txt
 rm -f driftwatch.db driftwatch.db-*
-python3 apps/engine/serve.py     # fresh seeded world
+python3 backend/serve.py     # fresh seeded world
 # open http://localhost:8000  → The Living Web, 12 days of seeded history
 ```
 
@@ -58,7 +58,7 @@ Slack alerts: set `DW_SLACK_WEBHOOK` before `serve.py` and Class 3/4/5 alerts al
 
 ## Verified in this review
 
-Executed 2026-08-22 against a freshly seeded `driftwatch.db` (`rm -f driftwatch.db* && python3 apps/engine/serve.py`), then the four `curl` calls above, in order, on `nimbusai-pricing`. Actual API responses:
+Executed 2026-08-22 against a freshly seeded `driftwatch.db` (`rm -f driftwatch.db* && python3 backend/serve.py`), then the four `curl` calls above, in order, on `nimbusai-pricing`. Actual API responses:
 
 | Variant | Response | Interpretation |
 |---|---|---|

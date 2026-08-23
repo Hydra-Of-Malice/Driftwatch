@@ -36,7 +36,7 @@ Scripts live in this session's scratchpad: `record.py` (capture), `build_mp4.py`
 `build_cut.py` (the timed cut), `gen_cue.py` (the published cue sheet). To redo a take:
 
 ```bash
-rm -f driftwatch.db driftwatch.db-* && python apps/engine/serve.py
+rm -f driftwatch.db driftwatch.db-* && python backend/serve.py
 ```
 
 then re-run `record.py`, `build_mp4.py`, `build_cut.py`. Event IDs are deterministic off a clean

@@ -10,7 +10,7 @@ Covers the four architecturally significant modules. Trivial helpers are omitted
 
 ## 1. Semantic Contract Engine
 
-**File:** `apps/engine/driftwatch_engine/contracts/engine.py` (179 lines)
+**File:** `backend/driftwatch_engine/contracts/engine.py` (179 lines)
 **Responsibility:** Decide whether an extraction payload is trustworthy, and by how much.
 **Purity:** Pure — no I/O except `load_spec()`.
 

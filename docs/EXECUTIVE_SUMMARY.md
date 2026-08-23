@@ -33,10 +33,10 @@ flowchart LR
 Two ideas carry the system:
 
 **1. Contracts that encode meaning, not just shape.** Alongside JSON Schema and range/enum invariants, a contract carries *semantic assertions*: the scraper captures the unit text printed next to each value, and the contract asserts which anchor phrases must appear in it. When the unit silently changes, the schema still passes and the semantics gate fails. That is the only mechanism in the system that can catch the `$2.50` case.
-Evidence: `apps/engine/driftwatch_engine/contracts/engine.py :: _gate_semantics`, `fixtures/contracts/nimbusai-pricing.yaml`
+Evidence: `backend/driftwatch_engine/contracts/engine.py :: _gate_semantics`, `fixtures/contracts/nimbusai-pricing.yaml`
 
 **2. A heal loop with the human removed but the proof kept.** Scraper Studio can repair a broken scraper, but its `heal` command stops at an approval gate expecting a person to notice the break, write the prompt, review the preview, and approve. DriftWatch performs all four steps — and critically, **does not trust the heal's own success report**. The preview returned at the gate is re-evaluated against the full contract, and only that verdict decides approval.
-Evidence: `apps/engine/driftwatch_engine/healing/orchestrator.py`, `healing/verifier.py`
+Evidence: `backend/driftwatch_engine/healing/orchestrator.py`, `healing/verifier.py`
 
 ## Architecture in one paragraph
 

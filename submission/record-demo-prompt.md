@@ -12,7 +12,7 @@ Record a silent screen-capture GIF walkthrough of the DriftWatch app running loc
 
 ```bash
 rm -f driftwatch.db driftwatch.db-*
-python3 apps/engine/serve.py
+python3 backend/serve.py
 ```
 
 Wait for it to report `Driftwatch engine starting on http://localhost:8000`. This gives a fresh, seeded demo world.
