@@ -118,8 +118,8 @@ document.querySelectorAll(".theme-switch button").forEach((btn) =>
   btn.addEventListener("click", () => applyTheme(btn.dataset.themeSet)));
 
 (() => {
-  let saved = "dark";
-  try { saved = localStorage.getItem("dw-theme") || "dark"; } catch { /* ignore */ }
+  let saved = "spider";
+  try { saved = localStorage.getItem("dw-theme") || "spider"; } catch { /* ignore */ }
   applyTheme(saved);
 })();
 
