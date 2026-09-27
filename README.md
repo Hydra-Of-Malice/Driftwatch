@@ -1,318 +1,193 @@
-# DriftWatch
+<div align="center">
 
-**The web your stack depends on has no changelog. Now it does.**
+# 🌊 DriftWatch
 
-At 2:07 a.m., a provider quietly edits one line on a pricing page. No announcement, no email, no API
-version bump. Every scraper watching it keeps returning green. Every one of them is now wrong.
-DriftWatch exists for that moment.
+### A changelog for the web pages your code depends on.
 
-DriftWatch turns the public pages your product silently depends on — model pricing, API docs, rate
-limits, vendor terms — into **versioned, validated data contracts** that repair themselves when
-sites change, and tells you what every real change means for your code and your bill:
+**Catches silent meaning changes · Repairs broken scrapers, then proves the fix · Prices the impact**
 
-> *"NimbusAI kept the price at $2.50 — but switched the unit from per-1M-input-tokens to
-> input+output combined. Your scraper succeeded. Your bill grows **+$626/month**. Here are the
-> 9 call sites."*
+[![Download](https://img.shields.io/badge/download-ZIP-2f6fde?style=for-the-badge)](https://github.com/Hydra-Of-Malice/Driftwatch/archive/refs/heads/main.zip)
+![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20Linux-555?style=for-the-badge)
+![Requires](https://img.shields.io/badge/requires-Python%203.10%2B-9a6700?style=for-the-badge)
+![Demo](https://img.shields.io/badge/demo-offline%2C%20no%20keys-1a7f37?style=for-the-badge)
 
-Built for the WeMakeDevs × Bright Data **Into the Scrape-Verse** hackathon, on top of **Bright Data
-Scraper Studio** — create, run, heal, verify, approve — orchestrated autonomously.
+<img src="docs/screenshot-main.png" width="720" alt="The Living Web view: two watched pages around your stack, summary tiles, and the latest drift events">
 
-> **Honesty note, up front.** Bright Data currently refuses two Scraper Studio operations on this
-> account: the AI Flow that generates a scraper (`403 Automation not allowed`) and self-healing
-> (`503 Self healing tool is temporarily disabled`). Those are real, reproducible vendor responses,
-> documented with raw envelopes in **[docs/LIVE_VALIDATION.md](docs/LIVE_VALIDATION.md)**.
-> DriftWatch does **not** simulate around them: in live mode it surfaces the actual failure,
-> classified, and never falls back to replay. What *is* live-proven, and what is blocked, is spelled
-> out in [Live status](#live-status) below.
+</div>
 
----
+DriftWatch watches the public pages your product relies on, such as model pricing, API references, rate limits, and vendor terms. When a page changes, it tells you what kind of change it was, repairs the scraper if the page was only redesigned, and shows which lines of your code are affected and what the change may cost. Example: a provider keeps a price at $2.50 but quietly changes the unit from "per 1M input tokens" to "input + output combined". The scrape still succeeds. DriftWatch flags the change, quarantines the data, and estimates **+$626/month**.
 
-## The problem
+It was built for the WeMakeDevs × Bright Data *Into the Scrape-Verse* hackathon, on top of Bright Data Scraper Studio.
 
-Scrapers don't fail loudly. A selector changes, extraction returns `null`, the HTTP status is still
-`200`, and the dashboard stays green while the data behind it rots. Worse, extraction that
-*succeeds* can still be *wrong*: the number is right and its meaning changed underneath you.
+## 💡 Why you'll like it
 
-## The solution
-
-```
-detect (semantic contracts) → diagnose (failing fields + last-known-good examples)
-  → compose the heal prompt → brightdata scraper heal → verify the preview AGAINST THE CONTRACT
-  → three-band policy: auto-approve / human review / auto-reject+retry → re-run → audit ledger
-```
-
-Bright Data's Scraper Studio can *heal* a broken scraper, but its loop has a human at both ends:
-someone must notice the breakage, write the heal prompt, review the preview, and approve.
-**DriftWatch is that human, formalized.**
-
-Every snapshot passes a **Semantic Contract** — shape (JSON Schema) + quality (invariants) +
-**meaning** (unit anchors) + plausibility (continuity) — before anything downstream may see it.
-Quarantined data never reaches analytics or alerts: **the dashboard cannot lie.**
-
-## The five-class drift taxonomy
-
-| Class | Name | What happened | What DriftWatch does |
-|---|---|---|---|
-| 1 | **Structural** | Page changed shape; meaning intact | Auto-heal → verify → approve. You see a green pulse. |
-| 2 | **Benign** | Copyedits, cosmetics | Ledger only. Never alerts. |
-| 3 | **Material** | A watched fact actually changed | Alert + blast radius + cost delta + migration note. |
-| 4 | **Semantic** | Extraction green, meaning shifted (unit/scope flip) | Quarantine + alert. Selectors can't see this; contracts can. |
-| 5 | **Availability** | Page moved/removed/blocked | `discover`-powered relocation candidates for approval. |
-
-Most monitoring detects Class 1. DriftWatch is a product about Classes 3, 4 and 5 — with Class 1
-handled so well you never see it.
-
----
-
-## Architecture
-
-```
-frontend/      zero-build SPA (vanilla ES modules + SVG) — Living Web, seismographs,
-               drift events, Heal Center, audit ledger, replay/live mode badge
-backend/       one Flask service: REST API + scheduler + the pipeline state machine
-  driftwatch_engine/
-    contracts/   the Semantic Contract Engine (4 gates → confidence verdict)
-    drift/       entity-resolved differ + five-class classifier
-    healing/     diagnose → compose(≤1000 chars) → verify preview → three-band approve
-    impact/      blast radius (repo scan) + cost-delta estimation
-    brightdata/  the client seam: replay (fixtures) ⇄ live (official CLI)
-    pipeline/    the run state machine (every transition audited)
-    errors.py    vendor/application failure taxonomy (see Failure classification)
-    obs.py       structured operation logging with credential scrubbing
-fixtures/      contracts (YAML), snapshot variants, sample repo for impact scans
-mirror/        the controlled demo site (v1 baseline → v2 redesign → v3 semantic → v4 material)
-scripts/       live smoke test, day-0 spike, deterministic heal demo
-```
-
-The pipeline state machine and design decisions: **[ARCHITECTURE.md](ARCHITECTURE.md)**.
-
-## Bright Data integration
-
-Everything above `brightdata/protocol.py` is identical in replay and live mode. `DW_MODE` picks the
-implementation exactly once, in `api/app.py :: build_deps` — **there is no silent live→replay
-fallback anywhere in the codebase.**
-
-| Scraper Studio capability | Where DriftWatch drives it |
+| | |
 |---|---|
-| `scraper create <url> "<description>"` | Source onboarding (`POST /api/onboard`) |
-| `scraper run <collector_id> [--version N]` | Every scheduled run; version pinning is the rollback |
-| `scraper heal <collector_id> "<prompt>"` | `healing/composer.py` writes it from the machine diagnosis |
-| the `awaiting_approval` gate + `preview_result` | `healing/verifier.py` re-proves it against the contract |
-| `scraper approve [--reject]` | The three-band policy; the human Review Queue calls the same API |
-| `discover --intent` | Class 5 relocation candidates when a page 404s |
+| 🔎 **Catches silent meaning changes** | When a number stays the same but its unit changes, DriftWatch flags it even though the scrape "worked". |
+| 🩹 **Repairs broken scrapers** | After a redesign, it writes the repair request, checks the result, and approves it only if the data passes. |
+| 💵 **Shows the cost of a change** | Price and unit changes come with an estimated monthly cost and the code lines that use them. |
+| 🔕 **Quiet unless it matters** | Wording edits and redesigns that are repaired automatically never raise an alert. |
+| 🛡️ **Bad data stays out** | Data that fails its checks is quarantined and never shown as the latest good snapshot. |
+| 🧾 **Every decision on record** | Each run, repair, approval, and alert is written to an append-only ledger. |
+| 🖥️ **Try it offline** | Demo mode runs the whole flow on your machine with no accounts or API keys. |
 
-Full lifecycle detail: **[docs/SCRAPER_STUDIO.md](docs/SCRAPER_STUDIO.md)**.
+## 🚀 Three steps
 
-## Live status
+<img src="docs/screenshot-event.png" width="720" alt="A semantic drift event: the unit text changed, the semantics check failed, and the estimated cost is +$626 per month">
 
-Validated 2026-08-23 against `@brightdata/cli@0.3.5`. Raw envelopes, HTTP statuses and reproduction
-commands: **[docs/LIVE_VALIDATION.md](docs/LIVE_VALIDATION.md)**.
+1. **Open the dashboard.** Start DriftWatch and open it in your browser. The Web view shows every watched page.
+2. **Change the web.** Click Demo controls, pick a scenario such as a redesign or a silent unit change, and click Apply & run all.
+3. **Read the verdict.** Open the new event to see what changed, which checks failed, the code affected, and the cost.
 
-| Operation | Status |
+## 📥 Download and run
+
+There is no installer and no public hosted version linked from this repo. You run it on your own machine.
+
+1. Install [Python](https://www.python.org/downloads/) 3.10 or newer.
+2. Download the [ZIP of this repo](https://github.com/Hydra-Of-Malice/Driftwatch/archive/refs/heads/main.zip) (about 15 MB, most of it demo videos) and unzip it, or clone it with Git.
+3. In the project folder, install the dependencies and start the app:
+
+   ```bash
+   pip install -r requirements.txt
+   python backend/serve.py
+   ```
+
+4. Open **http://localhost:8000** in your browser.
+
+The terminal will print `WARNING: This is a development server`. That is Flask's standard notice and is expected for local use. The app starts in **replay mode** and shows a **REPLAY** badge: it uses recorded Bright Data responses and a bundled copy of two made-up websites, so nothing is scraped from the internet.
+
+| Requirement | Details |
 |---|---|
-| Authentication, `zones` | **Live — works** |
-| Web Unlocker page retrieval | **Live — works** |
-| `POST /dca/collector` → real `c_*` collector ID | **Live — works** |
-| `discover --intent` (AI ranking) | **Live — works**, driven through `LiveClient` |
-| Scraper Studio AI Flow (`automate_template`) | **Blocked — HTTP 403 `Automation not allowed`** |
-| Self-healing (`refactor_template`) | **Blocked — HTTP 503 `Self healing tool is temporarily disabled`** |
+| Operating system | Windows or Linux. Both are tested in CI. |
+| Python | 3.10 or newer. CI tests 3.10 and 3.12. |
+| Browser | A current desktop browser |
+| Storage | A local SQLite file, `driftwatch.db`, created on first start |
+| Live mode only | A Bright Data account and API key, plus Node.js and the Bright Data CLI (`@brightdata/cli`) |
+| Optional | An Anthropic API key for better-worded alerts, a Slack webhook for alert delivery |
+| Not supported | macOS is not tested. Phones and tablets are not tested. More than one server worker is not supported. |
 
-Real collector IDs created by this project: `c_mt3vr49h1qtwyctl1g`, `c_mt5moeyi28i2av0bzd`,
-`c_mt5og4ec1cp5lb1yjd`, `c_mt5p4epqlomcj1iim`, `c_mt5p5irb2aw2fyjfgu` — each viewable at
-`https://brightdata.com/cp/scrapers/<id>`.
+## 🔍 What it does
 
-**Why the two blocks are different, and why it matters.** A controlled experiment settled it: the
-account holder issued a second API key with `Permissions = Admin` and the identical requests were
-replayed with each key. `/customer/balance` went `403 → 200`, proving the token-scope mechanism is
-real — but `automate_template` returned `403` with **both** keys, on a fresh collector and on two
-pre-existing ones. So the AI-Flow refusal is an **account-level feature entitlement**, not token
-scope, and no token change lifts it. The `503` on self-healing is a server-side global feature
-disable. Bright Data's own error text for the first 403 points at token permissions, which makes all
-three look like one problem; only holding the request constant while varying the token separates
-them. That is precisely why DriftWatch classifies failures itself instead of trusting vendor
-remediation text.
+| Stage | What happens |
+|---|---|
+| Scrape | On a schedule (hourly for the demo pages), each page's Bright Data scraper runs. In replay mode, recorded results are used. |
+| Check | The result must pass four checks: shape, value rules, meaning (the unit text next to each value), and plausibility against the last good snapshot. |
+| Classify | Any change is sorted into one of five classes: structural, benign, material, semantic, or availability. |
+| Repair | If a redesign broke the scraper, DriftWatch finds the failing fields, writes a heal prompt of at most 1,000 characters, and requests a heal. |
+| Verify | The healed preview must pass the same four checks. At 90% confidence or more with every check passing, it is approved and re-run. At 50% or less it is rejected and retried once. In between, a person decides in the Heal Center. |
+| Relocate | If a page is gone, Bright Data `discover` suggests where it may have moved, for review. |
+| Impact | For material and semantic changes, it scans a code repo for affected call sites and estimates the monthly cost change from a usage profile. |
+| Alert | Material, semantic, and availability changes, and repairs that need review or fail, create an in-app alert, plus a Slack message if configured. |
+| Record | Every step is written to the Ledger. |
 
----
+## ⚙️ How it works
 
-## Quickstart (offline, zero external dependencies)
-
-Requires Python 3.10+ with `flask`, `pydantic>=2`, `jsonschema`, `pyyaml`, `httpx`
-(`pip install -r requirements.txt`). No database server, no queue, no build step.
-
-```bash
-python backend/serve.py
-# → http://localhost:8000  (UI, API, and the demo mirror site on one origin)
+```text
+ scheduler ──► Bright Data scraper ──► 4-gate contract check
+               (live CLI or replay)        │            │
+                                         passes       fails
+                                           │            │
+                                           ▼            ▼
+                                  diff + classify   diagnose ──► heal ──► verify
+                                           │                               │
+                                           ▼                   approve / review / reject
+                              impact scan + cost estimate
+                                           │
+                                           ▼
+                           alert + audit ledger ──► web UI
 ```
 
-The engine boots in **replay mode** — a recorded Bright Data client plus a controlled mirror site
-(`/mirror/*`) simulating a provider's pricing page and a payments API reference, including an
-overnight redesign, a silent unit flip, a real price change, and a 404. The UI shows a **REPLAY**
-badge sourced from `GET /api/meta`, so replay can never be mistaken for live. Open **Demo controls**
-(bottom-left) to change what the mirrored web looks like, then watch the pipeline detect, heal,
-verify, approve and price the change.
-
-## Going live
-
-```bash
-npm i -g @brightdata/cli          # installs both `brightdata` and `bdata` (aliases, same binary)
-export BRIGHTDATA_API_KEY=...     # https://brightdata.com/cp/setting/users
-export DW_MODE=live
-python backend/serve.py
-```
-
-Live mode **fails loudly** if `BRIGHTDATA_API_KEY` is missing or the CLI is not on `PATH` — it will
-not start and silently serve replay data. Verify the whole live path with:
-
-```powershell
-powershell -ExecutionPolicy Bypass -File scripts\live_smoke_test.ps1
-```
-
-It stages CLI → auth → Web Unlocker → `discover` → `scraper create` → run/heal/approve, prints a
-PASS/FAIL/BLOCKED table, and uses distinct exit codes: **0** all-pass, **1** our fault (missing CLI,
-bad auth, broken handling), **2** a documented vendor refusal. CI can tell those apart.
-
-## Creating a real collector
-
-```bash
-curl -X POST localhost:8000/api/onboard -H 'Content-Type: application/json' -d '{
-  "id": "example-pricing",
-  "name": "Example — API Pricing",
-  "url": "https://example.com/pricing",
-  "description": "For every model extract: model id, price per 1M input tokens, price per 1M output tokens, the visible unit text next to each price (as unit_context), and model status.",
-  "schedule_minutes": 60
-}'
-```
-
-The response carries the real `collector_id`, the AI-Flow `completed_steps` and the Studio
-`view_url`. A source also needs a hand-authored semantic contract at
-`fixtures/contracts/<id>.yaml` — copy `nimbusai-pricing.yaml` as a starting point.
-
-## Demonstrating drift and healing
-
-Deterministic, terminal-driven, repeatable:
-
-```powershell
-powershell -ExecutionPolicy Bypass -File scripts\heal_demo.ps1
-```
-
-It verifies a clean extraction, injects a controlled break, shows verification failing and *which
-gates* failed, shows the machine-composed heal prompt, verifies the preview, applies the approval
-policy, re-runs, confirms the data is restored, and restores the baseline world on exit. Only the
-*failure injection* is controlled — the heal semantics are the real production code paths.
-
-Presenter script with timings: **[docs/DEMO_SCRIPT.md](docs/DEMO_SCRIPT.md)**.
-
-## Verification — the four gates
-
-A healed scraper's output is never trusted; it is **re-proven**. `contracts/engine.py :: evaluate`
-runs all four gates and composes a weighted confidence, and `healing/verifier.py` runs *the same
-function* on a heal preview — one definition of correctness everywhere.
-
-| Gate | Weight | What it proves |
+| Component | Purpose | License |
 |---|---|---|
-| **schema** | 0.35 | JSON Schema (Draft 2020-12) — the shape is right |
-| **invariants** | 0.25 | `non_null` / `range` / `enum` / `cardinality_drop` — the values are usable |
-| **semantics** | 0.25 | unit/scope anchors near each value still hold — **the Class-4 tripwire** |
-| **continuity** | 0.15 | plausibility vs last-known-good — no silent implausible jumps |
+| Flask | Web server for the API, the UI, and the demo mirror site | BSD-3-Clause |
+| Pydantic | Settings and data models | MIT |
+| jsonschema | The shape check in each contract | MIT |
+| PyYAML | Reading contract and usage files | MIT |
+| HTTPX | Optional calls to the Anthropic API and Slack | BSD-3-Clause |
+| Gunicorn | Production server in the Render deploy | MIT |
+| SQLite (Python standard library) | Runs, snapshots, events, and the audit ledger | Public domain |
+| Bright Data CLI (`@brightdata/cli`) | Live mode only: create, run, heal, and approve scrapers | MIT (the Bright Data service has its own terms) |
+| Anthropic API | Optional: rewrites alert summaries and migration notes | Anthropic commercial terms |
+| Frontend | Plain JavaScript and SVG, no third-party code, no build step | MIT (this project) |
 
-The verdict, not the heal's own success status, decides approval:
+## 🤝 Responsible use
 
-| Confidence | Decision |
+- Watch only public pages you are allowed to collect, and follow each site's terms of use.
+- Live mode spends Bright Data credits on every page load. Pick a schedule you can afford.
+- The server listens on localhost only by default. If you expose it with `DW_HOST=0.0.0.0`, also set `DW_API_TOKEN`.
+- Do not set `DW_PUBLIC_DEMO=true` on a live deployment. It opens most API routes to anyone and is meant for the replay demo only.
+
+## ⚠️ Known limits
+
+- At the last live test (2026-08-23), Bright Data refused two Scraper Studio features for this project's account: scraper generation (`403 Automation not allowed`) and self-healing (`503 Self healing tool is temporarily disabled`). The full live create, run, heal, and approve loop has not been shown end to end. Evidence is in `docs/LIVE_VALIDATION.md`.
+- The repair loop you see in the UI runs in replay mode. The checks, heal prompts, approval rules, and ledger are the real code, but the Bright Data responses are recorded.
+- The two demo sources, NimbusAI and PayFlux, are made-up websites served from the `mirror/` folder. Their 12-day history is generated seed data.
+- Each new page needs a hand-written contract file in `fixtures/contracts/`. Adding a page without one fails on purpose.
+- The code scan and cost estimate always use the bundled sample repo in `fixtures/sample-repo/`. Pointing them at your own code requires a code change.
+- `DW_CREDIT_BUDGET` is read but not enforced. Credits are counted, not capped.
+- It runs as one process with an in-process scheduler and SQLite. Use a single server worker.
+- There are no user accounts. Access control is one optional shared token (`DW_API_TOKEN`).
+- The 50 automated tests cover the engine and API. The web UI has no automated tests.
+- The helper scripts in `scripts/` are PowerShell only.
+- If an Anthropic API call fails, DriftWatch falls back to template text without telling you.
+
+## 🛠️ Development
+
+Prerequisites: Git and Python 3.10 or newer. For live mode, also Node.js and the Bright Data CLI.
+
+```bash
+git clone https://github.com/Hydra-Of-Malice/Driftwatch.git
+cd Driftwatch
+python -m venv .venv
+source .venv/bin/activate          # Windows PowerShell: .venv\Scripts\Activate.ps1
+pip install -r requirements.txt
+python backend/serve.py            # http://localhost:8000
+```
+
+Run the tests and the linter:
+
+```bash
+cd backend && python -m unittest discover -s tests
+cd .. && pip install ruff && ruff check backend
+```
+
+Configuration comes from environment variables or a `.env` file in the repo root. Copy `.env.example` to start.
+
+| Variable | What it does |
 |---|---|
-| `≥ 0.90` and all gates pass | auto-approve, bump version, re-run |
-| `≤ 0.50` | auto-reject, retry once with a refined prompt |
-| in between | human Review Queue (same Bright Data approval API) |
+| `DW_MODE` | `replay` (default) or `live` |
+| `DW_HOST`, `DW_PORT` | Bind address and port. Default `127.0.0.1` and `8000`. |
+| `DW_DB_PATH` | SQLite file. Default `driftwatch.db` in the repo root. |
+| `DW_API_TOKEN` | If set, `/api/*` requires `Authorization: Bearer <token>` |
+| `DW_PUBLIC_DEMO` | Replay demo only: opens reads and demo actions to visitors without the token |
+| `BRIGHTDATA_API_KEY` | Required for live mode |
+| `ANTHROPIC_API_KEY` | Optional. Better-worded alert text. |
+| `DW_SLACK_WEBHOOK` | Optional. Sends alerts to Slack. |
 
-The active template version only advances **after** a verified re-run. A rejected heal leaves the
-previous version active and the interval quarantined.
+To go live, install the CLI with `npm i -g @brightdata/cli`, set `DW_MODE=live` and `BRIGHTDATA_API_KEY`, and start the server. Live mode refuses to start if the key or the CLI is missing.
 
-## Failure classification
+| Folder / file | Contents |
+|---|---|
+| `backend/driftwatch_engine/` | The engine: `contracts/`, `drift/`, `healing/`, `impact/`, `brightdata/`, `pipeline/`, and the Flask API in `api/` |
+| `backend/serve.py`, `backend/wsgi.py` | Local server and Gunicorn entry point |
+| `backend/tests/` | Unit, API, and end-to-end tests |
+| `frontend/` | The web UI: one HTML page plus plain JavaScript and CSS |
+| `fixtures/` | Contracts, recorded snapshots, and the sample repo used for impact scans |
+| `mirror/` | The demo websites, four versions each |
+| `scripts/` | PowerShell smoke test and heal demo |
+| `docs/` | Engineering docs and screenshots |
+| `render.yaml` | Render deploy blueprint (replay mode) |
 
-A vendor refusal is never reported as a broken scraper. `errors.py` maps every failure to a stable
-category — `VENDOR_AUTH_ERROR`, `VENDOR_PERMISSION_ERROR`, `VENDOR_UNAVAILABLE`,
-`VENDOR_RATE_LIMIT`, `VENDOR_TIMEOUT`, `VENDOR_BAD_RESPONSE`, `CLI_COMPATIBILITY`,
-`SCRAPER_FAILURE`, `SCHEMA_DRIFT`, `SEMANTIC_DRIFT`, `VERIFICATION_FAILURE`, `APPLICATION_ERROR` —
-carried through the API as HTTP 502 with `{category, operation, status, hint}` and surfaced in the
-UI. `SCRAPER_FAILURE` is reserved for a scraper that genuinely ran and failed.
-
-## Reliability guarantees
-
-- The live client **never manufactures success**: an empty run, a `*_failed` envelope status, or a
-  vendor error raises a classified failure. An HTTP 200 is not an outcome.
-- The vendor's own wording survives — the CLI's JSON error envelope is parsed *before* the exit
-  code, so the diagnostic is never discarded for a generic "CLI failed".
-- Quarantined snapshots are never served downstream.
-- Every run, verdict, heal prompt, preview, approval (machine *and* human) and alert is an
-  append-only audit event.
-- Zero-noise alerting: Classes 0–2 never page anyone.
-
-## Security
-
-- `.env` is gitignored and has never been committed (verified against full history).
-- No credential reaches a log, an exception, an API response, or the frontend bundle. The live
-  client redacts credential-shaped strings from vendor stderr/stdout before they can be raised, and
-  `obs.py` scrubs by key name as a second layer. A test pins that the key never appears in a raised
-  error.
-- `subprocess` runs with `shell=False`, list-form argv, and an absolute resolved binary — no
-  command-injection surface. URLs are validated to public `http(s)` and rejected if they begin with
-  `-` (argv-flag injection).
-- `source_id` is constrained to `[a-z0-9][a-z0-9_-]{0,63}` because it becomes a filesystem path.
-- `DW_API_TOKEN` gates every `/api/*` route with a constant-time comparison when set. The public
-  demo opts into a documented split (`DW_PUBLIC_DEMO`): reads and demo-driving writes are open so
-  anonymous judges can use it, while `/api/onboard` — the only route that reaches Bright Data and
-  spends credits — stays gated in every configuration. The relaxation is opt-in; the default gates
-  everything, and both configurations are pinned by tests.
-- Full posture, including accepted residual risks: **[docs/06_Security/](docs/06_Security/)**.
-
-## Testing
+There is no build step. For a server deployment, `render.yaml` installs `requirements.txt` and runs:
 
 ```bash
-cd backend && python -m unittest discover -s tests      # 50 tests
+cd backend && gunicorn --workers 1 --threads 4 --timeout 120 --bind 0.0.0.0:$PORT wsgi:app
 ```
 
-```bash
-python -m ruff check backend                            # lint
-```
+Further reading: [pipeline design](ARCHITECTURE.md), [technical reference](docs/ARCHITECTURE.md) (Bright Data integration, live status, checks, security), [engineering docs index](docs/README.md), and the [live validation log](docs/LIVE_VALIDATION.md).
 
-CI runs the suite on a matrix of `ubuntu-latest` × `windows-latest` and Python `3.10` × `3.12`. The
-Windows job exists for a reason: every Windows-specific bug this project shipped (a hardcoded POSIX
-`PATH` that wiped the child environment, a bare `brightdata` invocation that cannot launch the npm
-`.cmd` shim, and a cp1252 decode that silently discarded all CLI stdout) survived precisely because
-CI was Linux-only.
+AI usage disclosure: [docs/AI_USAGE.md](docs/AI_USAGE.md)
 
-## Deployment
+## 📄 License
 
-`render.yaml` deploys the public demo in **replay mode**, deliberately and visibly. Secrets are
-never in the file — `BRIGHTDATA_API_KEY` and `ANTHROPIC_API_KEY` are `sync: false` (dashboard-only)
-and `DW_API_TOKEN` is Render-generated. The health check is `/`. To run a deployment against real Bright Data, set `DW_MODE=live` and
-`BRIGHTDATA_API_KEY` in the Render dashboard; note the free Python runtime does not ship the Bright
-Data CLI, which live mode requires.
-
-## Limitations
-
-These are real and reproducible, not hedges:
-
-1. **Scraper Studio AI Flow is refused for this account** (`403 Automation not allowed`). Collectors
-   are created for real, but their templates stay stubs, so a live `scraper run` cannot be
-   demonstrated end-to-end. Not fixable by token scope — see [Live status](#live-status).
-2. **Self-healing is disabled server-side by Bright Data** (`503`). The live heal round trip is
-   therefore not demonstrable at all right now. DriftWatch surfaces the 503 as `VENDOR_UNAVAILABLE`
-   rather than substituting a replay result.
-3. Because of (1) and (2), the break→heal→verify→approve→recover story is demonstrated against the
-   deterministic replay world and the bundled mirror site, clearly labeled **REPLAY** in the UI. The
-   heal *semantics* — prompt composition, four-gate verification, three-band approval, version
-   pinning, audit ledger — are the real production code paths; only the vendor transport is replayed.
-4. Semantic contracts are hand-authored per source. Onboarding a source without one fails with 422
-   by design rather than guessing at correctness.
-5. Bright Data authentication was observed to flap (a transient `401` for ~10 minutes with an
-   unchanged key). The smoke test classifies `401` as our-fault/exit-1 so CI does not shrug it off.
-
-## Hackathon submission notes
-
-- **Live validation log:** [docs/LIVE_VALIDATION.md](docs/LIVE_VALIDATION.md)
-- **Scraper Studio usage:** [docs/SCRAPER_STUDIO.md](docs/SCRAPER_STUDIO.md)
-- **Demo script:** [docs/DEMO_SCRIPT.md](docs/DEMO_SCRIPT.md)
-- **AI coding assistant usage:** [docs/AI_USAGE.md](docs/AI_USAGE.md)
-- **Example structured output:** [fixtures/snapshots/](fixtures/snapshots/)
-- Public web data only. The demo runs against a self-hosted mirror so the break-and-heal moment is
-  reproducible on stage — clearly labeled, same pipeline, real heal semantics.
+[MIT](LICENSE). Third-party components keep their own licenses. See [third-party notices](THIRD_PARTY_NOTICES.md).
